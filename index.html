@@ -1283,14 +1283,212 @@ canvas.addEventListener('pointerdown', e=>{
   if(nearest && nearDist < 120) nearest.release();
 });
 
-// ═══════════════════════════════
-//  FILL BUTTONS — spawn balloon
-// ═══════════════════════════════
+// ═══ RECORDING ═══
+let mediaStream=null, mediaRecorder=null, recChunks=[];
+let isRecording=false, recStartTime=0, recTimerRAF=null;
+let analyserNode=null, waveRAF=null, fullBuffer=null;
+
+const wfCan  = document.getElementById('waveform');
+const wfCtx2 = wfCan.getContext('2d');
+wfCtx2.imageSmoothingEnabled = false;
+
+function setRecLabel(txt){ document.getElementById('rec-lbl').textContent = txt; }
+
+function drawWaveLive(){
+  if(!analyserNode){ waveRAF=requestAnimationFrame(drawWaveLive); return; }
+  const data = new Uint8Array(analyserNode.fftSize);
+  analyserNode.getByteTimeDomainData(data);
+  const cw=wfCan.width, ch=wfCan.height;
+  wfCtx2.fillStyle='#110e1c'; wfCtx2.fillRect(0,0,cw,ch);
+  const bw = Math.max(2, Math.floor(cw/data.length*2));
+  for(let x=0;x<cw;x+=bw){
+    const idx=Math.floor(x/cw*data.length);
+    const v=(data[Math.min(idx,data.length-1)]/128-1)*(ch/2);
+    wfCtx2.fillStyle='#cc44ff';
+    wfCtx2.fillRect(x, ch/2-Math.abs(v), bw-1, Math.max(2,Math.abs(v)*2));
+  }
+  waveRAF = requestAnimationFrame(drawWaveLive);
+}
+
+function drawWaveStatic(buf){
+  const cw=wfCan.width, ch=wfCan.height;
+  const data=buf.getChannelData(0);
+  const step=Math.ceil(data.length/cw);
+  wfCtx2.fillStyle='#08060f'; wfCtx2.fillRect(0,0,cw,ch);
+  for(let x=0;x<cw;x+=2){
+    let mn=1,mx=-1;
+    for(let s=0;s<step*2;s++){
+      const v=data[x*step+s]||0;
+      if(v<mn)mn=v; if(v>mx)mx=v;
+    }
+    const y1=Math.floor(ch/2+mn*ch*.47), y2=Math.floor(ch/2+mx*ch*.47);
+    wfCtx2.fillStyle='#cc44ff';
+    wfCtx2.fillRect(x,Math.min(y1,y2),1,Math.max(1,Math.abs(y2-y1)));
+  }
+}
+
+function updateTimer(){
+  const e=(Date.now()-recStartTime)/1000;
+  const mm=Math.floor(e/60).toString().padStart(2,'0');
+  const ss=Math.floor(e%60).toString().padStart(2,'0');
+  document.getElementById('rec-timer').textContent=mm+':'+ss;
+  if(isRecording) recTimerRAF=requestAnimationFrame(updateTimer);
+}
+
+function getSupportedMime(){
+  for(const t of['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'])
+    if(MediaRecorder.isTypeSupported(t)) return t;
+  return '';
+}
+
+async function startRecording(){
+  initAC();
+  try{
+    mediaStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+  }catch(e){
+    setRecLabel('MIC DENIED - RELOAD');
+    return;
+  }
+  const msrc = AC.createMediaStreamSource(mediaStream);
+  analyserNode = AC.createAnalyser(); analyserNode.fftSize=512;
+  msrc.connect(analyserNode);
+
+  recChunks=[]; isRecording=true; recStartTime=Date.now();
+
+  // UI: recording state
+  document.getElementById('rec-btn').classList.add('rec');
+  document.getElementById('rec-center').classList.add('stop');
+  document.getElementById('rec-timer').style.opacity='1';
+  document.getElementById('use-btn').style.display='none';
+  document.getElementById('re-rec').style.display='none';
+  setRecLabel('TAP TO STOP');
+  updateTimer(); drawWaveLive();
+
+  mediaRecorder = new MediaRecorder(mediaStream,{mimeType:getSupportedMime()});
+  mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) recChunks.push(e.data); };
+  mediaRecorder.onstop = processRecording;
+  mediaRecorder.start(100);
+}
+
+function stopRecording(){
+  if(!isRecording) return;
+  isRecording=false;
+  cancelAnimationFrame(recTimerRAF);
+  cancelAnimationFrame(waveRAF);
+  if(mediaRecorder && mediaRecorder.state!=='inactive') mediaRecorder.stop();
+  if(mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
+  document.getElementById('rec-btn').classList.remove('rec');
+  document.getElementById('rec-center').classList.remove('stop');
+  document.getElementById('rec-timer').style.opacity='0';
+  setRecLabel('PROCESSING...');
+}
+
+async function processRecording(){
+  if(!recChunks.length){
+    setRecLabel('NO AUDIO - RETRY'); showReRec(); return;
+  }
+  const mime = recChunks[0].type || 'audio/webm';
+  const blob = new Blob(recChunks, {type:mime});
+  let arrayBuf;
+  try{ arrayBuf = await blob.arrayBuffer(); }
+  catch(e){ setRecLabel('READ ERROR - RETRY'); showReRec(); return; }
+
+  try{ fullBuffer = await AC.decodeAudioData(arrayBuf); }
+  catch(e){ setRecLabel('DECODE ERROR - RETRY'); showReRec(); return; }
+
+  if(!fullBuffer || fullBuffer.duration < 0.2){
+    setRecLabel('TOO SHORT - RETRY'); showReRec(); return;
+  }
+
+  // Success — show waveform and launch button
+  drawWaveStatic(fullBuffer);
+  setRecLabel('READY  ' + fullBuffer.duration.toFixed(1) + 'S');
+  showUseBtn();
+}
+
+function showUseBtn(){
+  document.getElementById('use-btn').style.display='block';
+  document.getElementById('re-rec').style.display='block';
+}
+
+function showReRec(){
+  document.getElementById('re-rec').style.display='block';
+}
+
+function launchApp(){
+  if(!fullBuffer){ setRecLabel('NO SAMPLE'); return; }
+  try{
+    initAC();
+    buildDrums();
+    startClock();
+  }catch(err){
+    console.error('Launch error:', err);
+    setRecLabel('ERROR: '+err.message);
+    return;
+  }
+  appStarted=true; lastT=performance.now();
+  const ov=document.getElementById('rec-overlay');
+  ov.style.transition='opacity .4s';
+  ov.style.opacity='0';
+  ov.style.pointerEvents='none';
+  setTimeout(()=>{ ov.style.display='none'; }, 450);
+  // Auto-spawn all balloons
+  setTimeout(()=>spawnBalloon(0), 200);
+  setTimeout(()=>spawnBalloon(1), 500);
+  setTimeout(()=>spawnBalloon(2), 800);
+}
+
+function resetToRecord(){
+  fullBuffer=null;
+  wfCtx2.fillStyle='#08060f'; wfCtx2.fillRect(0,0,wfCan.width,wfCan.height);
+  document.getElementById('use-btn').style.display='none';
+  document.getElementById('re-rec').style.display='none';
+  setRecLabel('TAP TO RECORD');
+}
+
+// ─── Button events ───
+document.getElementById('rec-btn').addEventListener('pointerup', e=>{
+  e.preventDefault(); e.stopPropagation();
+  if(isRecording) stopRecording(); else startRecording();
+});
+
+document.getElementById('use-btn').addEventListener('pointerup', e=>{
+  e.preventDefault(); e.stopPropagation();
+  launchApp();
+});
+
+document.getElementById('re-rec').addEventListener('pointerup', e=>{
+  e.preventDefault(); e.stopPropagation();
+  resetToRecord();
+});
+
+document.getElementById('new-rec-btn').addEventListener('pointerup', e=>{
+  e.stopPropagation();
+  for(const b of balloons) b._stopAudio();
+  balloons=[]; appStarted=false; clockOn=false;
+  resetToRecord();
+  const ov=document.getElementById('rec-overlay');
+  ov.style.display='flex'; ov.style.opacity='0'; ov.style.pointerEvents='all';
+  requestAnimationFrame(()=>{ ov.style.transition='opacity .3s'; ov.style.opacity='1'; });
+  document.querySelectorAll('.sq').forEach(d=>d.classList.remove('on'));
+  ['cb1','cb2','cb3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.width='0%'; });
+});
+
+// BPM
+document.getElementById('bpm-dn').addEventListener('pointerup', e=>{
+  e.stopPropagation(); BPM=Math.max(60,BPM-5); updateBPMDisplay();
+  if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
+});
+document.getElementById('bpm-up').addEventListener('pointerup', e=>{
+  e.stopPropagation(); BPM=Math.min(200,BPM+5); updateBPMDisplay();
+  if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
+});
+
+// Nozzles
 function spawnBalloon(nIdx){
   if(!appStarted) return;
   if(nIdx===0 && !fullBuffer) return;
-  // If already has an active balloon, release it
-  const existing=balloons.find(b=>b.nIdx===nIdx);
+  const existing = balloons.find(b=>b.nIdx===nIdx);
   if(existing){
     if(existing.state==='swelling') existing.release();
     return;
@@ -1303,169 +1501,6 @@ document.getElementById('b1').addEventListener('pointerup',e=>{e.stopPropagation
 document.getElementById('b2').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(1);});
 document.getElementById('b3').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(2);});
 
-// ═══════════════════════════════
-//  BPM
-// ═══════════════════════════════
-document.getElementById('bpm-dn').addEventListener('pointerup',e=>{
-  e.stopPropagation();
-  BPM=Math.max(60,BPM-5);
-  updateBPMDisplay();
-  if(appStarted && DRUMS) buildBeatBuffers(); // rebake with new timing
-  // Restart swell audio to pick up new buffer
-  for(const b of balloons) if(b.state==='swelling') b._startAudio();
-});
-document.getElementById('bpm-up').addEventListener('pointerup',e=>{
-  e.stopPropagation();
-  BPM=Math.min(200,BPM+5);
-  updateBPMDisplay();
-  if(appStarted && DRUMS) buildBeatBuffers();
-  for(const b of balloons) if(b.state==='swelling') b._startAudio();
-});
-
-// ═══════════════════════════════
-//  RECORDING
-// ═══════════════════════════════
-let mediaStream=null,mediaRecorder=null,recChunks=[],isRecording=false;
-let recStartTime=0,recTimerRAF=null,analyserNode=null,waveRAF=null;
-const wfCan=document.getElementById('waveform'),wfCtx2=wfCan.getContext('2d');
-wfCtx2.imageSmoothingEnabled=false;
-
-function drawWaveLive(){
-  if(!analyserNode){waveRAF=requestAnimationFrame(drawWaveLive);return;}
-  const data=new Uint8Array(analyserNode.fftSize);
-  analyserNode.getByteTimeDomainData(data);
-  const cw=wfCan.width,ch=wfCan.height;
-  wfCtx2.fillStyle='#110e1c';
-  wfCtx2.fillRect(0,0,cw,ch);
-  // Pixel-art waveform — draw as blocks
-  const blockW=Math.max(2,Math.floor(cw/data.length*2));
-  const step=Math.max(1,Math.floor(data.length/cw*blockW));
-  wfCtx2.fillStyle='#cc44ff';
-  for(let x=0;x<cw;x+=blockW){
-    const idx=Math.floor(x/cw*data.length);
-    const v=(data[Math.min(idx,data.length-1)]/128-1)*(ch/2);
-    const barH=Math.max(2,Math.abs(v));
-    wfCtx2.fillRect(x, ch/2-(v>0?barH:0), blockW-1, barH);
-  }
-  waveRAF=requestAnimationFrame(drawWaveLive);
-}
-function drawWaveStatic(buf){
-  const cw=wfCan.width,ch=wfCan.height,data=buf.getChannelData(0);
-  const step=Math.ceil(data.length/cw);
-  wfCtx2.fillStyle='#08060f';
-  wfCtx2.fillRect(0,0,cw,ch);
-  const blockW=2;
-  for(let x=0;x<cw;x+=blockW){
-    let mn=1,mx=-1;
-    for(let s=0;s<step*blockW;s++){const v=data[x*step+s]||0;if(v<mn)mn=v;if(v>mx)mx=v;}
-    const y1=Math.floor(ch/2+mn*ch*.47), y2=Math.floor(ch/2+mx*ch*.47);
-    wfCtx2.fillStyle='#cc44ff';
-    wfCtx2.fillRect(x,Math.min(y1,y2),blockW-1,Math.max(1,Math.abs(y2-y1)));
-  }
-}
-function updateTimer(){
-  const e=(Date.now()-recStartTime)/1000;
-  const mm=Math.floor(e/60).toString().padStart(2,'0');
-  const ss=Math.floor(e%60).toString().padStart(2,'0');
-  document.getElementById('rec-timer').textContent=`${mm}:${ss}`;
-  if(isRecording) recTimerRAF=requestAnimationFrame(updateTimer);
-}
-function getSupportedMime(){
-  for(const t of['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'])
-    if(MediaRecorder.isTypeSupported(t)) return t;
-  return '';
-}
-async function startRecording(){
-  initAC();
-  try{mediaStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
-  catch(e){alert('Mic access denied — please allow and reload.');return;}
-  const src=AC.createMediaStreamSource(mediaStream);
-  analyserNode=AC.createAnalyser();analyserNode.fftSize=512;src.connect(analyserNode);
-  recChunks=[];isRecording=true;recStartTime=Date.now();
-  const btn=document.getElementById('rec-btn'),icon=document.getElementById('rec-center');
-  btn.classList.add('rec');icon.classList.add('stop');
-  document.getElementById('rec-lbl').textContent='TAP TO STOP';
-  document.getElementById('rec-timer').style.opacity='1';
-  document.getElementById('use-btn').style.display='none';
-  document.getElementById('re-rec').style.display='none';
-  updateTimer();drawWaveLive();
-  mediaRecorder=new MediaRecorder(mediaStream,{mimeType:getSupportedMime()});
-  mediaRecorder.ondataavailable=e=>{if(e.data.size>0)recChunks.push(e.data);};
-  mediaRecorder.onstop=onRecStop;mediaRecorder.start(80);
-}
-function stopRecording(){
-  if(!isRecording)return;isRecording=false;
-  cancelAnimationFrame(recTimerRAF);cancelAnimationFrame(waveRAF);
-  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
-  if(mediaStream)mediaStream.getTracks().forEach(t=>t.stop());
-  const btn=document.getElementById('rec-btn'),icon=document.getElementById('rec-center');
-  btn.classList.remove('rec');icon.classList.remove('stop');
-  document.getElementById('rec-lbl').textContent='PROCESSING...';
-  document.getElementById('rec-timer').style.opacity='0';
-}
-async function onRecStop(){
-  const blob=new Blob(recChunks,{type:recChunks[0]?.type||'audio/webm'});
-  try{fullBuffer=await AC.decodeAudioData(await blob.arrayBuffer());}
-  catch(e){
-    document.getElementById('rec-lbl').textContent='ERROR - RETRY';
-    document.getElementById('re-rec').style.display='block';return;
-  }
-  if(fullBuffer.duration<0.3){
-    document.getElementById('rec-lbl').textContent='TOO SHORT';
-    document.getElementById('re-rec').style.display='block';return;
-  }
-  drawWaveStatic(fullBuffer);
-  document.getElementById('rec-lbl').textContent='READY '+fullBuffer.duration.toFixed(1)+'S';
-  document.getElementById('use-btn').style.display='block';
-  document.getElementById('re-rec').style.display='block';
-}
-
-document.getElementById('rec-btn').addEventListener('pointerup',e=>{
-  e.preventDefault();e.stopPropagation();
-  if(isRecording)stopRecording();else startRecording();
-});
-document.getElementById('use-btn').addEventListener('pointerup',e=>{
-  e.preventDefault();if(!fullBuffer)return;
-  try{
-    initAC();
-    buildDrums();
-    startClock();
-  } catch(err){
-    console.error('Init error:',err);
-    document.getElementById('rec-lbl').textContent='INIT ERROR - RETRY';
-    return;
-  }
-  appStarted=true;lastT=performance.now();
-  const ov=document.getElementById('rec-overlay');
-  ov.style.transition='opacity .4s';ov.style.opacity='0';ov.style.pointerEvents='none';
-  setTimeout(()=>ov.style.display='none',440);
-  // Auto-start all three balloons
-  setTimeout(()=>{
-    spawnBalloon(0); // sample
-    setTimeout(()=>spawnBalloon(1), 200); // baile
-    setTimeout(()=>spawnBalloon(2), 400); // dub
-  }, 100);
-});
-document.getElementById('re-rec').addEventListener('pointerup',e=>{
-  e.preventDefault();fullBuffer=null;
-  document.getElementById('use-btn').style.display='none';
-  document.getElementById('re-rec').style.display='none';
-  document.getElementById('rec-lbl').textContent='TAP TO RECORD';
-  wfCtx2.fillStyle='#08060f';wfCtx2.fillRect(0,0,wfCan.width,wfCan.height);
-});
-document.getElementById('new-rec-btn').addEventListener('pointerup',e=>{
-  e.stopPropagation();
-  for(const b of balloons) b._stopAudio();
-  balloons=[];appStarted=false;clockOn=false;fullBuffer=null;
-  const ov=document.getElementById('rec-overlay');
-  ov.style.display='flex';ov.style.opacity='0';ov.style.pointerEvents='all';
-  requestAnimationFrame(()=>{ov.style.transition='opacity .3s';ov.style.opacity='1';});
-  document.getElementById('use-btn').style.display='none';
-  document.getElementById('re-rec').style.display='none';
-  document.getElementById('rec-lbl').textContent='TAP TO RECORD';
-  document.querySelectorAll('.sq').forEach(d=>d.classList.remove('on'));
-  ['cb1','cb2','cb3'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.width='0%';});
-});
 </script>
 </body>
 </html>
