@@ -706,7 +706,7 @@ function buildDrums(){
     subKick:  subKick(44,2.8,1.4),
     subKick2: subKick(38,3.2,1.6),
     midKick:  subKick(62,1.8,0.8),
-    dubSnare, dubSnareHard:dubSnare(),
+    dubSnare:dubSnare(), dubSnareHard:dubSnare(),
     hatC:metalHat(false), hatO:metalHat(true),
     reese:reeseSub(0.3), reeseShort:reeseSub(0.15),
     crunch:bitCrunch(), sweep:sweepNoise(),
@@ -987,16 +987,18 @@ class Balloon {
   _startAudio(){
     this._stopAudio();
     if(!AC) return;
-    const mst = AC.createGain(); mst.gain.value=0.78; mst.connect(dest());
-    const src = AC.createBufferSource();
+    let buf = null;
     if(this.role==='sample'){
       if(!fullBuffer) return;
-      src.buffer = fullBuffer; src.loop=true;
+      buf = fullBuffer;
     } else {
       const key = this.role==='baile'?'baile':'dub';
-      if(!BEAT_BUFS[key]) return;
-      src.buffer = BEAT_BUFS[key]; src.loop=true;
+      buf = BEAT_BUFS[key] || null;
     }
+    if(!buf) return;
+    const mst = AC.createGain(); mst.gain.value=0.78; mst.connect(dest());
+    const src = AC.createBufferSource();
+    src.buffer = buf; src.loop=true;
     src.connect(mst); src.start();
     this._src=src; this._mst=mst;
   }
@@ -1026,18 +1028,13 @@ class Balloon {
   _applyFxToRunning(){
     if(!this._src || !this._mst) return;
     const fx=this.fx;
-    // playbackRate-style FX
+    // Playback rate changes (pitch, speed) — apply directly to source
     if(fx.apply) fx.apply(this._src, this._src.buffer, this._mst);
-    // Chain FX routed after master gain
+    // Chain FX: tap off the master gain node in parallel
+    // master already connects to dest; chainFn adds a wet parallel path
     if(fx.chainFn){
       const nodes=fx.chainFn(this._mst);
       if(nodes) this.fxNodes.push(...nodes);
-    }
-    // For chainFn, disconnect master from global dest, chain handles it
-    if(fx.chainFn){
-      try{this._mst.disconnect();}catch(e){}
-      // reconnect master to dest after chain (already done in chainFn)
-      this._mst.connect(dest());
     }
   }
 
@@ -1302,14 +1299,14 @@ function spawnBalloon(nIdx){
   balloons.push(b);
   b.startSwell();
 }
-document.getElementById('b1').addEventListener('click',e=>{e.stopPropagation();spawnBalloon(0);});
-document.getElementById('b2').addEventListener('click',e=>{e.stopPropagation();spawnBalloon(1);});
-document.getElementById('b3').addEventListener('click',e=>{e.stopPropagation();spawnBalloon(2);});
+document.getElementById('b1').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(0);});
+document.getElementById('b2').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(1);});
+document.getElementById('b3').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(2);});
 
 // ═══════════════════════════════
 //  BPM
 // ═══════════════════════════════
-document.getElementById('bpm-dn').addEventListener('click',e=>{
+document.getElementById('bpm-dn').addEventListener('pointerup',e=>{
   e.stopPropagation();
   BPM=Math.max(60,BPM-5);
   updateBPMDisplay();
@@ -1317,7 +1314,7 @@ document.getElementById('bpm-dn').addEventListener('click',e=>{
   // Restart swell audio to pick up new buffer
   for(const b of balloons) if(b.state==='swelling') b._startAudio();
 });
-document.getElementById('bpm-up').addEventListener('click',e=>{
+document.getElementById('bpm-up').addEventListener('pointerup',e=>{
   e.stopPropagation();
   BPM=Math.min(200,BPM+5);
   updateBPMDisplay();
@@ -1338,7 +1335,7 @@ function drawWaveLive(){
   const data=new Uint8Array(analyserNode.fftSize);
   analyserNode.getByteTimeDomainData(data);
   const cw=wfCan.width,ch=wfCan.height;
-  wfCtx2.fillStyle='var(--panel)';
+  wfCtx2.fillStyle='#110e1c';
   wfCtx2.fillRect(0,0,cw,ch);
   // Pixel-art waveform — draw as blocks
   const blockW=Math.max(2,Math.floor(cw/data.length*2));
@@ -1423,26 +1420,40 @@ async function onRecStop(){
   document.getElementById('re-rec').style.display='block';
 }
 
-document.getElementById('rec-btn').addEventListener('click',e=>{
+document.getElementById('rec-btn').addEventListener('pointerup',e=>{
   e.preventDefault();e.stopPropagation();
   if(isRecording)stopRecording();else startRecording();
 });
-document.getElementById('use-btn').addEventListener('click',e=>{
+document.getElementById('use-btn').addEventListener('pointerup',e=>{
   e.preventDefault();if(!fullBuffer)return;
-  initAC();buildDrums();startClock();
+  try{
+    initAC();
+    buildDrums();
+    startClock();
+  } catch(err){
+    console.error('Init error:',err);
+    document.getElementById('rec-lbl').textContent='INIT ERROR - RETRY';
+    return;
+  }
   appStarted=true;lastT=performance.now();
   const ov=document.getElementById('rec-overlay');
   ov.style.transition='opacity .4s';ov.style.opacity='0';ov.style.pointerEvents='none';
   setTimeout(()=>ov.style.display='none',440);
+  // Auto-start all three balloons
+  setTimeout(()=>{
+    spawnBalloon(0); // sample
+    setTimeout(()=>spawnBalloon(1), 200); // baile
+    setTimeout(()=>spawnBalloon(2), 400); // dub
+  }, 100);
 });
-document.getElementById('re-rec').addEventListener('click',e=>{
+document.getElementById('re-rec').addEventListener('pointerup',e=>{
   e.preventDefault();fullBuffer=null;
   document.getElementById('use-btn').style.display='none';
   document.getElementById('re-rec').style.display='none';
   document.getElementById('rec-lbl').textContent='TAP TO RECORD';
   wfCtx2.fillStyle='#08060f';wfCtx2.fillRect(0,0,wfCan.width,wfCan.height);
 });
-document.getElementById('new-rec-btn').addEventListener('click',e=>{
+document.getElementById('new-rec-btn').addEventListener('pointerup',e=>{
   e.stopPropagation();
   for(const b of balloons) b._stopAudio();
   balloons=[];appStarted=false;clockOn=false;fullBuffer=null;
