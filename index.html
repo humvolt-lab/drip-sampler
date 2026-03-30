@@ -23,14 +23,15 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box;
-    touch-action:none; user-select:none;
+    user-select:none;
     -webkit-tap-highlight-color:transparent;
     image-rendering:pixelated; }
 
 html,body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); }
 
 /* pixel-art canvas behind everything */
-canvas { position:fixed; inset:0; image-rendering:pixelated; }
+canvas { position:fixed; inset:0; image-rendering:pixelated; touch-action:none; }
+button { touch-action:manipulation; }
 
 /* ── PIXEL BORDER MIXIN — box shadow trick ── */
 .px-box {
@@ -1267,20 +1268,29 @@ requestAnimationFrame(loop);
 // ═══════════════════════════════
 //  TOUCH — hit balloons
 // ═══════════════════════════════
-canvas.addEventListener('pointerdown', e=>{
+function handleCanvasTap(tx, ty){
   if(!appStarted) return;
-  const tx=e.clientX, ty=e.clientY;
   for(const b of balloons){
     if(b.contains(tx,ty)){ b.release(); return; }
   }
-  // Tap on empty space while a balloon exists: release nearest swelling one
   let nearest=null, nearDist=Infinity;
   for(const b of balloons){
     if(b.state!=='swelling') continue;
     const d=Math.hypot(tx-b.x, ty-b.y);
     if(d<nearDist){ nearDist=d; nearest=b; }
   }
-  if(nearest && nearDist < 120) nearest.release();
+  if(nearest && nearDist < 140) nearest.release();
+}
+let canvasLastTap=0;
+canvas.addEventListener('touchend', e=>{
+  e.preventDefault();
+  const now=Date.now(); if(now-canvasLastTap<200) return; canvasLastTap=now;
+  const t=e.changedTouches[0];
+  handleCanvasTap(t.clientX, t.clientY);
+}, {passive:false});
+canvas.addEventListener('click', e=>{
+  const now=Date.now(); if(now-canvasLastTap<300) return; canvasLastTap=now;
+  handleCanvasTap(e.clientX, e.clientY);
 });
 
 // ═══ RECORDING ═══
@@ -1446,24 +1456,35 @@ function resetToRecord(){
   setRecLabel('TAP TO RECORD');
 }
 
-// ─── Button events ───
-document.getElementById('rec-btn').addEventListener('pointerup', e=>{
-  e.preventDefault(); e.stopPropagation();
+// ─── Button tap helper (works on iOS + Android + desktop) ───
+// Uses touchend for mobile responsiveness; click as fallback for desktop.
+// Deduplication prevents double-fire when both events occur.
+function onTap(el, fn){
+  let lastT=0;
+  function handle(e){
+    e.preventDefault(); e.stopPropagation();
+    const now=Date.now();
+    if(now-lastT<300) return; // dedupe
+    lastT=now;
+    fn(e);
+  }
+  el.addEventListener('touchend', handle, {passive:false});
+  el.addEventListener('click', handle);
+}
+
+onTap(document.getElementById('rec-btn'), ()=>{
   if(isRecording) stopRecording(); else startRecording();
 });
 
-document.getElementById('use-btn').addEventListener('pointerup', e=>{
-  e.preventDefault(); e.stopPropagation();
+onTap(document.getElementById('use-btn'), ()=>{
   launchApp();
 });
 
-document.getElementById('re-rec').addEventListener('pointerup', e=>{
-  e.preventDefault(); e.stopPropagation();
+onTap(document.getElementById('re-rec'), ()=>{
   resetToRecord();
 });
 
-document.getElementById('new-rec-btn').addEventListener('pointerup', e=>{
-  e.stopPropagation();
+onTap(document.getElementById('new-rec-btn'), ()=>{
   for(const b of balloons) b._stopAudio();
   balloons=[]; appStarted=false; clockOn=false;
   resetToRecord();
@@ -1474,13 +1495,12 @@ document.getElementById('new-rec-btn').addEventListener('pointerup', e=>{
   ['cb1','cb2','cb3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.width='0%'; });
 });
 
-// BPM
-document.getElementById('bpm-dn').addEventListener('pointerup', e=>{
-  e.stopPropagation(); BPM=Math.max(60,BPM-5); updateBPMDisplay();
+onTap(document.getElementById('bpm-dn'), ()=>{
+  BPM=Math.max(60,BPM-5); updateBPMDisplay();
   if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
 });
-document.getElementById('bpm-up').addEventListener('pointerup', e=>{
-  e.stopPropagation(); BPM=Math.min(200,BPM+5); updateBPMDisplay();
+onTap(document.getElementById('bpm-up'), ()=>{
+  BPM=Math.min(200,BPM+5); updateBPMDisplay();
   if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
 });
 
@@ -1497,9 +1517,9 @@ function spawnBalloon(nIdx){
   balloons.push(b);
   b.startSwell();
 }
-document.getElementById('b1').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(0);});
-document.getElementById('b2').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(1);});
-document.getElementById('b3').addEventListener('pointerup',e=>{e.stopPropagation();spawnBalloon(2);});
+onTap(document.getElementById('b1'), ()=>spawnBalloon(0));
+onTap(document.getElementById('b2'), ()=>spawnBalloon(1));
+onTap(document.getElementById('b3'), ()=>spawnBalloon(2));
 
 </script>
 </body>
