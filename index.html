@@ -2,374 +2,353 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>DRIP PHONK</title>
 <style>
-/* ── PIXEL ART FONT ── */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
 
 :root {
-  --bg:      #08060f;
-  --panel:   #110e1c;
-  --border:  #2a1f44;
-  --c1:      #cc44ff;   /* sample — violet */
-  --c2:      #00ffaa;   /* baile  — mint   */
-  --c3:      #ff6600;   /* dub    — orange */
-  --gold:    #ffdd44;
-  --red:     #ff2255;
-  --text:    #ddd0ee;
-  --dim:     #2a1f44;
-  --px:      2px;       /* pixel unit */
+  --bg:    #07050c;
+  --panel: #100d1a;
+  --c1:    #cc44ff;
+  --c2:    #00ffaa;
+  --c3:    #ff6600;
+  --gold:  #ffdd44;
+  --red:   #ff2255;
+  --text:  #ddd0ee;
+  --dim:   #241b38;
 }
 
-* { margin:0; padding:0; box-sizing:border-box;
-    user-select:none;
-    -webkit-tap-highlight-color:transparent;
-    image-rendering:pixelated; }
-
-html,body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); }
-
-/* pixel-art canvas behind everything */
-canvas { position:fixed; inset:0; image-rendering:pixelated; touch-action:none; }
-button { touch-action:manipulation; }
-
-/* ── PIXEL BORDER MIXIN — box shadow trick ── */
-.px-box {
-  box-shadow:
-    0 -2px 0 0 var(--border),
-    0  2px 0 0 var(--border),
-   -2px 0 0 0 var(--border),
-    2px 0 0 0 var(--border);
+html, body {
+  margin: 0; padding: 0;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: 'Press Start 2P', monospace;
 }
 
-/* ══════════════ RECORD OVERLAY ══════════════ */
-#rec-overlay {
-  position:fixed; inset:0; z-index:80;
-  background:var(--bg);
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  gap:16px;
+/* ── SCREENS ── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--bg);
+  z-index: 10;
 }
+.screen.hidden { display: none; }
 
-#rec-logo {
-  font-family:'Press Start 2P',monospace;
-  font-size:clamp(1.4rem,5vw,2.2rem);
-  color:var(--c1);
-  text-shadow:
-    4px 4px 0 #440066,
-    0 0 20px rgba(204,68,255,.6),
-    0 0 40px rgba(204,68,255,.3);
-  letter-spacing:.08em;
-  line-height:1.4;
-  text-align:center;
-  animation:crt-flicker 4s infinite;
+/* ── RECORD SCREEN ── */
+#s-rec h1 {
+  font-size: clamp(2rem, 8vw, 3rem);
+  color: var(--c1);
+  text-shadow: 4px 4px 0 #440066, 0 0 30px rgba(204,68,255,.6);
+  text-align: center;
+  line-height: 1.3;
+  margin: 0;
 }
-
-#rec-tagline {
-  font-family:'VT323',monospace;
-  font-size:1.1rem; letter-spacing:.3em;
-  color:var(--c2); opacity:.7;
-  text-shadow:0 0 8px var(--c2);
-}
-
-#rec-desc {
-  font-family:'VT323',monospace;
-  font-size:1.05rem; letter-spacing:.05em;
-  color:var(--text); opacity:.55;
-  text-align:center; line-height:1.9;
-  max-width:280px;
+#s-rec p {
+  font-family: 'VT323', monospace;
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  color: var(--text);
+  opacity: .55;
+  text-align: center;
+  line-height: 1.8;
+  max-width: 300px;
+  margin: 0;
 }
 
 #waveform-wrap {
-  position:relative;
-  width:272px; height:58px;
-  background:var(--panel);
-  box-shadow:
-    inset 0 0 0 2px var(--border),
-    0 0 0 2px #000,
-    0 0 12px rgba(204,68,255,.2);
+  width: min(300px, 90vw);
+  height: 60px;
+  background: var(--panel);
+  border: 2px solid var(--dim);
+  position: relative;
+  overflow: hidden;
 }
-#waveform { width:100%; height:100%; display:block; }
-
-/* scanline overlay on waveform */
+#waveform {
+  width: 100%; height: 100%; display: block;
+}
+/* scanlines */
 #waveform-wrap::after {
-  content:''; position:absolute; inset:0; pointer-events:none;
-  background:repeating-linear-gradient(
-    to bottom,
-    rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px,
-    rgba(0,0,0,.35) 1px, rgba(0,0,0,.35) 2px
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    transparent 0px, transparent 2px,
+    rgba(0,0,0,.28) 2px, rgba(0,0,0,.28) 4px
   );
+  pointer-events: none;
 }
 
+#rec-timer {
+  font-size: clamp(.8rem, 3vw, 1.1rem);
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red);
+  min-height: 1.5em;
+  text-align: center;
+}
+
+/* Big record button */
 #rec-btn {
-  position:relative;
-  width:72px; height:72px;
-  background:var(--panel);
-  border:none; cursor:pointer; outline:none;
-  /* pixel art button via box shadows */
-  box-shadow:
-    0 4px 0 0 #000,
-    4px 0 0 0 #000,
-    -4px 0 0 0 #000,
-    0 -4px 0 0 #000,
-    inset 0 0 0 2px var(--red),
-    0 0 18px rgba(255,34,85,.4);
-  display:flex; align-items:center; justify-content:center;
-  transition:box-shadow .08s, transform .08s;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: 4px solid var(--red);
+  background: var(--panel);
+  box-shadow: 0 0 20px rgba(255,34,85,.4), 0 4px 0 #000;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  /* Critical for mobile tap: */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .1s, box-shadow .1s;
 }
 #rec-btn:active {
-  transform:translateY(3px);
-  box-shadow:
-    0 1px 0 0 #000,
-    4px 0 0 0 #000,
-    -4px 0 0 0 #000,
-    0 -4px 0 0 #000,
-    inset 0 0 0 2px var(--red),
-    0 0 28px rgba(255,34,85,.8);
+  transform: scale(.92);
+  box-shadow: 0 0 30px rgba(255,34,85,.8), 0 0 0 #000;
 }
-#rec-btn.rec {
-  animation:rec-blink .65s steps(1) infinite;
+#rec-dot {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 12px var(--red);
+  transition: border-radius .2s, background .2s;
 }
-#rec-center {
-  width:26px; height:26px;
-  background:var(--red);
-  box-shadow:0 0 10px var(--red), 0 0 20px rgba(255,34,85,.5);
-}
-#rec-center.stop { clip-path:none; width:20px; height:20px; }
-
-#rec-lbl {
-  font-family:'VT323',monospace; font-size:1.1rem;
-  letter-spacing:.22em; color:var(--text); opacity:.45;
-}
-#rec-timer {
-  font-family:'Press Start 2P',monospace; font-size:.85rem;
-  color:var(--red); opacity:0; transition:opacity .2s;
-  text-shadow:0 0 10px var(--red), 2px 2px 0 #440011;
+#rec-btn.recording #rec-dot {
+  border-radius: 4px;
+  width: 24px; height: 24px;
+  animation: blink .7s steps(1) infinite;
 }
 
-#use-btn {
-  font-family:'Press Start 2P',monospace; font-size:.65rem;
-  letter-spacing:.06em; color:#000;
-  background:var(--c1);
-  border:none; cursor:pointer; outline:none;
-  padding:12px 20px;
-  display:none;
-  box-shadow:
-    0 4px 0 0 #440066,
-    4px 0 0 0 #440066,
-    -4px 0 0 0 #440066,
-    0 0 0 4px #000,
-    0 0 22px rgba(204,68,255,.5);
-  transition:transform .07s, box-shadow .07s;
-}
-#use-btn:active {
-  transform:translateY(4px);
-  box-shadow:
-    0 0 0 0 #440066,
-    4px 0 0 0 #440066,
-    -4px 0 0 0 #440066,
-    0 0 0 4px #000;
+#rec-status {
+  font-family: 'VT323', monospace;
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  letter-spacing: .2em;
+  color: var(--text);
+  opacity: .5;
+  text-align: center;
+  min-height: 1.5em;
 }
 
-#re-rec {
-  font-family:'VT323',monospace; font-size:.95rem;
-  letter-spacing:.14em; color:var(--text); opacity:.28;
-  cursor:pointer; display:none;
-  background:none; border:none; padding:0;
+/* Launch button — hidden until sample ready */
+#launch-btn {
+  display: none;
+  padding: 14px 24px;
+  background: var(--c1);
+  color: #000;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(.5rem, 2.5vw, .7rem);
+  letter-spacing: .05em;
+  cursor: pointer;
+  box-shadow: 0 5px 0 #440066, 0 0 20px rgba(204,68,255,.4);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .1s, box-shadow .1s;
+}
+#launch-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #440066;
 }
 
-/* ══════════════ MAIN UI ══════════════ */
-#ui {
-  position:fixed; top:0; left:0; right:0;
-  z-index:20; pointer-events:none;
+#rerec-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-family: 'VT323', monospace;
+  font-size: 1.1rem;
+  letter-spacing: .15em;
+  color: var(--text);
+  opacity: .3;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* pixel art top bar */
+/* ── MAIN SCREEN ── */
+#s-main {
+  background: transparent;
+  pointer-events: none; /* children opt in */
+}
+
+/* pixel canvas underneath */
+#c {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+/* top bar */
 #topbar {
-  display:flex; align-items:center;
-  justify-content:space-between;
-  padding:6px 8px;
-  background:var(--panel);
-  border-bottom:2px solid var(--dim);
-  box-shadow:0 2px 0 #000, 0 0 20px rgba(0,0,0,.8);
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--dim);
+  box-shadow: 0 2px 0 #000;
+  pointer-events: all;
 }
-
 #logo {
-  font-family:'Press Start 2P',monospace;
-  font-size:clamp(.55rem,.9vw,.7rem);
-  color:var(--c1);
-  text-shadow:2px 2px 0 #440066, 0 0 10px rgba(204,68,255,.5);
-  line-height:1.3;
-  white-space:nowrap;
+  font-size: clamp(.45rem,.8vw,.6rem);
+  color: var(--c1);
+  text-shadow: 2px 2px 0 #440066;
+  line-height: 1.4;
 }
-#logo .sub {
-  font-size:.5em; color:var(--c2); display:block;
-  text-shadow:1px 1px 0 #004433, 0 0 6px var(--c2);
-  margin-top:2px;
-}
-
-/* BPM control — pixel style */
-#bpm-area {
-  display:flex; align-items:center; gap:4px;
-  pointer-events:all;
-}
-.bpm-btn {
-  width:22px; height:22px;
-  background:var(--dim); border:none; cursor:pointer; outline:none;
-  font-family:'Press Start 2P',monospace; font-size:.5rem;
-  color:var(--gold);
-  box-shadow:0 2px 0 #000, inset 0 0 0 1px rgba(255,221,68,.3);
-  display:flex; align-items:center; justify-content:center;
-}
-.bpm-btn:active { transform:translateY(2px); box-shadow:none; }
-#bpm-val {
-  font-family:'Press Start 2P',monospace; font-size:.55rem;
-  color:var(--gold);
-  text-shadow:1px 1px 0 #443300, 0 0 8px rgba(255,221,68,.4);
-  min-width:52px; text-align:center;
-  background:var(--panel);
-  padding:3px 4px;
-  box-shadow:inset 0 0 0 1px var(--dim);
+#logo small {
+  display: block;
+  font-size: .75em;
+  color: var(--c2);
+  text-shadow: 1px 1px 0 #004433;
 }
 
-/* step sequencer dots */
-#seq-row {
-  display:flex; gap:2px; align-items:center;
+#steps {
+  display: flex;
+  gap: 3px;
+  align-items: center;
 }
 .sq {
-  width:5px; height:5px;
-  background:var(--dim);
-  transition:background .03s;
-  image-rendering:pixelated;
+  width: 5px; height: 5px;
+  background: var(--dim);
 }
-.sq.on { background:var(--c1); box-shadow:0 0 4px var(--c1); }
-.sq.beat { width:7px; height:7px; }
+.sq.beat { width: 7px; height: 7px; }
+.sq.on   { background: var(--c1); box-shadow: 0 0 5px var(--c1); }
 
-/* ── nozzle pods ── */
-#nozzle-row {
-  display:flex; justify-content:space-around;
-  padding:5px 6px 0;
-  pointer-events:all;
+#bpm-ctl {
+  display: flex; align-items: center; gap: 4px;
 }
-.pod {
-  display:flex; flex-direction:column;
-  align-items:center; gap:3px;
+.bbtn {
+  width: 24px; height: 24px;
+  background: var(--dim);
+  border: none;
+  color: var(--gold);
+  font-family: 'Press Start 2P', monospace;
+  font-size: .55rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 0 #000;
 }
-.pod-label {
-  font-family:'Press Start 2P',monospace;
-  font-size:.38rem; letter-spacing:.04em;
-  line-height:1.4;
-  text-align:center;
-}
-.pod-btn {
-  width:88px; height:36px;
-  border:none; cursor:pointer; outline:none;
-  font-family:'Press Start 2P',monospace;
-  font-size:.42rem; letter-spacing:.04em;
-  display:flex; align-items:center; justify-content:center; gap:4px;
-  transition:transform .06s, box-shadow .06s;
-}
-.pod-btn:active { transform:translateY(3px); }
-
-.pod-btn.p1 {
-  background:#1a003a; color:var(--c1);
-  box-shadow:0 4px 0 #220044, inset 0 0 0 2px #440088,
-             0 0 14px rgba(204,68,255,.3);
-}
-.pod-btn.p1:active { box-shadow:0 1px 0 #220044, inset 0 0 0 2px #440088; }
-
-.pod-btn.p2 {
-  background:#001f18; color:var(--c2);
-  box-shadow:0 4px 0 #003322, inset 0 0 0 2px #006644,
-             0 0 14px rgba(0,255,170,.22);
-}
-.pod-btn.p2:active { box-shadow:0 1px 0 #003322, inset 0 0 0 2px #006644; }
-
-.pod-btn.p3 {
-  background:#200800; color:var(--c3);
-  box-shadow:0 4px 0 #331100, inset 0 0 0 2px #882200,
-             0 0 14px rgba(255,102,0,.26);
-}
-.pod-btn.p3:active { box-shadow:0 1px 0 #331100, inset 0 0 0 2px #882200; }
-
-/* FX readout */
-#fx-banner {
-  position:fixed; bottom:44px; left:0; right:0;
-  text-align:center;
-  font-family:'Press Start 2P',monospace; font-size:.52rem;
-  letter-spacing:.06em; pointer-events:none; opacity:0;
-  transition:opacity .18s;
-  text-shadow:2px 2px 0 #000;
+.bbtn:active { transform: translateY(2px); box-shadow: none; }
+#bpm-disp {
+  font-size: .55rem;
+  color: var(--gold);
+  text-shadow: 1px 1px 0 #443300;
+  min-width: 48px;
+  text-align: center;
+  background: var(--panel);
+  padding: 3px 4px;
+  border: 1px solid var(--dim);
 }
 
-#new-rec-btn {
-  position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
-  z-index:25; pointer-events:all;
-  padding:5px 12px;
-  background:var(--panel); border:none; cursor:pointer; outline:none;
-  font-family:'VT323',monospace; font-size:.9rem; letter-spacing:.14em;
-  color:var(--text); opacity:.3;
-  box-shadow:0 2px 0 #000, inset 0 0 0 1px var(--dim);
+/* nozzle row */
+#nozzles {
+  position: fixed;
+  top: 48px; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 8px;
+  pointer-events: all;
 }
-#new-rec-btn:active { opacity:.8; }
+.pod { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pod-lbl {
+  font-size: .35rem;
+  letter-spacing: .1em;
+  text-align: center;
+  line-height: 1.5;
+}
+.nbtn {
+  width: 86px; height: 36px;
+  border: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: .38rem;
+  letter-spacing: .04em;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .07s, box-shadow .07s;
+}
+.nbtn:active { transform: translateY(3px); }
+.nbtn.p1 {
+  background: #1a003a; color: var(--c1);
+  box-shadow: 0 4px 0 #220044, inset 0 0 0 2px #440088;
+}
+.nbtn.p2 {
+  background: #001f18; color: var(--c2);
+  box-shadow: 0 4px 0 #003322, inset 0 0 0 2px #006644;
+}
+.nbtn.p3 {
+  background: #200800; color: var(--c3);
+  box-shadow: 0 4px 0 #331100, inset 0 0 0 2px #882200;
+}
+.charge {
+  width: 86px; height: 5px;
+  background: var(--dim);
+}
+.charge-fill { height: 100%; width: 0%; transition: width .08s linear; }
 
-/* ── CRT scanlines over everything ── */
+/* toast */
+#toast {
+  position: fixed;
+  bottom: 40px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 2px solid var(--dim);
+  padding: 6px 14px;
+  font-size: .44rem;
+  letter-spacing: .05em;
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 #000;
+  transition: opacity .15s;
+}
+
+#newrec {
+  position: fixed;
+  bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background: var(--panel);
+  border: 1px solid var(--dim);
+  padding: 5px 14px;
+  font-family: 'VT323', monospace;
+  font-size: .9rem;
+  letter-spacing: .12em;
+  color: var(--text);
+  opacity: .28;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: all;
+}
+#newrec:active { opacity: .8; }
+
+/* CRT overlay */
 #crt {
-  position:fixed; inset:0; z-index:100; pointer-events:none;
-  background:repeating-linear-gradient(
-    to bottom,
-    rgba(0,0,0,0)    0px, rgba(0,0,0,0)    2px,
-    rgba(0,0,0,.18)  2px, rgba(0,0,0,.18)  4px
+  position: fixed; inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    transparent 0, transparent 2px,
+    rgba(0,0,0,.14) 2px, rgba(0,0,0,.14) 4px
   );
 }
-/* vignette */
-#crt::after {
-  content:''; position:absolute; inset:0;
-  background:radial-gradient(ellipse at 50% 50%,
-    transparent 60%, rgba(0,0,0,.72) 100%);
-}
 
-/* ── FX TOAST popup ── */
-#fx-toast {
-  position:fixed; bottom:44px; left:50%;
-  transform:translateX(-50%);
-  background:var(--panel);
-  padding:6px 14px;
-  font-family:'Press Start 2P',monospace; font-size:.48rem;
-  letter-spacing:.05em; pointer-events:none; opacity:0;
-  transition:opacity .15s;
-  box-shadow:0 3px 0 #000, inset 0 0 0 2px var(--border), 0 0 16px rgba(0,0,0,.8);
-  white-space:nowrap;
-  z-index:30;
-}
-
-/* ── Balloon charge bar ── */
-.charge-bar-wrap {
-  width:88px; height:6px;
-  background:var(--dim);
-  box-shadow:inset 0 0 0 1px #000;
-  overflow:hidden;
-}
-.charge-bar-fill {
-  height:100%;
-  transition:width .05s linear;
-}
-
-/* ── scrolling help text ── */
-#help {
-  position:fixed; bottom:28px; left:0; right:0;
-  text-align:center;
-  font-family:'VT323',monospace; font-size:.82rem;
-  letter-spacing:.12em; color:var(--text); opacity:.15;
-  pointer-events:none;
-}
-
-@keyframes crt-flicker {
-  0%,96%,100%{opacity:1}97%{opacity:.8}98%{opacity:1}99%{opacity:.85}
-}
-@keyframes rec-blink {
-  0%,49%{box-shadow:0 4px 0 0 #000,4px 0 0 0 #000,-4px 0 0 0 #000,0 -4px 0 0 #000,inset 0 0 0 2px var(--red),0 0 30px rgba(255,34,85,.9);}
-  50%,99%{box-shadow:0 4px 0 0 #000,4px 0 0 0 #000,-4px 0 0 0 #000,0 -4px 0 0 #000,inset 0 0 0 2px #880022,0 0 4px rgba(255,34,85,.2);}
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: .2; }
 }
 </style>
 </head>
@@ -379,35 +358,26 @@ button { touch-action:manipulation; }
 <div id="crt"></div>
 
 <!-- ══ RECORD SCREEN ══ -->
-<div id="rec-overlay">
-  <div id="rec-logo">DRIP<br>PHONK</div>
-  <div id="rec-tagline">DUBSTEP · BAILE MACHINE</div>
-  <div id="rec-desc">
-    record a riff or voice.<br>
-    swelling drops fill with your sample<br>
-    or a beat. touch a drop to release it.
-  </div>
+<div id="s-rec" class="screen">
+  <h1>DRIP<br>PHONK</h1>
+  <p>record your voice or a beat.<br>touch a swelling drop to release it.</p>
   <div id="waveform-wrap">
-    <canvas id="waveform" width="272" height="58"></canvas>
+    <canvas id="waveform" width="300" height="60"></canvas>
   </div>
-  <div id="rec-timer">00:00</div>
-  <button id="rec-btn"><div id="rec-center"></div></button>
-  <div id="rec-lbl">TAP TO RECORD</div>
-  <button id="use-btn">[ DROP THE PHONK ]</button>
-  <button id="re-rec">re-record</button>
+  <div id="rec-timer">&nbsp;</div>
+  <button id="rec-btn"><div id="rec-dot"></div></button>
+  <div id="rec-status">TAP TO RECORD</div>
+  <button id="launch-btn">[ DROP THE PHONK ]</button>
+  <button id="rerec-btn">↺ record again</button>
 </div>
 
-<!-- ══ MAIN CANVAS ══ -->
-<canvas id="c"></canvas>
+<!-- ══ MAIN SCREEN ══ -->
+<div id="s-main" class="screen hidden">
+  <canvas id="c"></canvas>
 
-<!-- ══ UI ══ -->
-<div id="ui">
   <div id="topbar">
-    <div id="logo">
-      DRIP PHONK
-      <span class="sub">BAILE DUBSTEP</span>
-    </div>
-    <div id="seq-row">
+    <div id="logo">DRIP PHONK<small>DUBSTEP BAILE</small></div>
+    <div id="steps">
       <div class="sq beat" id="sq0"></div><div class="sq" id="sq1"></div>
       <div class="sq" id="sq2"></div><div class="sq" id="sq3"></div>
       <div class="sq beat" id="sq4"></div><div class="sq" id="sq5"></div>
@@ -417,1109 +387,969 @@ button { touch-action:manipulation; }
       <div class="sq beat" id="sq12"></div><div class="sq" id="sq13"></div>
       <div class="sq" id="sq14"></div><div class="sq" id="sq15"></div>
     </div>
-    <div id="bpm-area">
-      <button class="bpm-btn" id="bpm-dn">-</button>
-      <div id="bpm-val">140</div>
-      <button class="bpm-btn" id="bpm-up">+</button>
+    <div id="bpm-ctl">
+      <button class="bbtn" id="bdn">-</button>
+      <div id="bpm-disp">140</div>
+      <button class="bbtn" id="bup">+</button>
     </div>
   </div>
 
-  <div id="nozzle-row">
-    <!-- pod 1: sample -->
+  <div id="nozzles">
     <div class="pod">
-      <div class="pod-label" style="color:var(--c1)">SAMPLE<br>LOOP</div>
-      <button class="pod-btn p1" id="b1">▼ FILL</button>
-      <div class="charge-bar-wrap"><div class="charge-bar-fill" id="cb1" style="width:0%;background:var(--c1);"></div></div>
+      <div class="pod-lbl" style="color:var(--c1)">SAMPLE<br>LOOP</div>
+      <button class="nbtn p1" id="n1">▼ FILL</button>
+      <div class="charge"><div class="charge-fill" id="cf1" style="background:var(--c1)"></div></div>
     </div>
-    <!-- pod 2: baile beat -->
     <div class="pod">
-      <div class="pod-label" style="color:var(--c2)">BAILE<br>BEAT</div>
-      <button class="pod-btn p2" id="b2">▼ FILL</button>
-      <div class="charge-bar-wrap"><div class="charge-bar-fill" id="cb2" style="width:0%;background:var(--c2);"></div></div>
+      <div class="pod-lbl" style="color:var(--c2)">BAILE<br>BEAT</div>
+      <button class="nbtn p2" id="n2">▼ FILL</button>
+      <div class="charge"><div class="charge-fill" id="cf2" style="background:var(--c2)"></div></div>
     </div>
-    <!-- pod 3: dub bass -->
     <div class="pod">
-      <div class="pod-label" style="color:var(--c3)">DUB<br>BASS</div>
-      <button class="pod-btn p3" id="b3">▼ FILL</button>
-      <div class="charge-bar-wrap"><div class="charge-bar-fill" id="cb3" style="width:0%;background:var(--c3);"></div></div>
+      <div class="pod-lbl" style="color:var(--c3)">DUB<br>BASS</div>
+      <button class="nbtn p3" id="n3">▼ FILL</button>
+      <div class="charge"><div class="charge-fill" id="cf3" style="background:var(--c3)"></div></div>
     </div>
   </div>
+
+  <div id="toast"></div>
+  <button id="newrec">⏺ new recording</button>
 </div>
 
-<div id="fx-toast"></div>
-<div id="help">touch a swelling drop to release it</div>
-
 <script>
-/* ════════════════════════════════════════════════════════════════
-   DRIP PHONK  v8  —  Balloon Drop UI
+'use strict';
 
-   FLOW:
-   ─ Press "FILL" button → a balloon drop starts swelling at
-     the nozzle head, playing its sound (sample loop or beat)
-     while it inflates over ~2 bars
-   ─ Touch the balloon → it releases, falls, plays a
-     randomised FX transform of the sound as it falls
-   ─ Balloon hits bottom → pops, splashes, respawns smaller
-     and starts inflating again
-   ─ Beat balloons (lanes 2+3): each inflation cycle plays
-     a full bar of synthesized dubstep/baile drums
-   ─ Sample balloon (lane 1): full recording loops while swelling
-     then gets delay/pitch/reverse on drop
-
-   PIXEL ART: all drawing uses pixel-aligned integer coords,
-   dithered gradients, 4-colour-per-element palettes.
-════════════════════════════════════════════════════════════════ */
-
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-
-let W, H;
-function resize(){
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  ctx.imageSmoothingEnabled = false;
+// ── Simple tap helper — works on all platforms ──
+function tap(el, fn) {
+  if (!el) return;
+  // touchend for instant mobile response
+  el.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    fn();
+  }, { passive: false });
+  // click for desktop / as fallback
+  el.addEventListener('click', fn);
 }
-resize(); window.addEventListener('resize', resize);
 
-// ═══════════════════════════════
-//  AUDIO
-// ═══════════════════════════════
+// ── Screens ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+//  AUDIO CONTEXT
+// ══════════════════════════════════════════
 let AC = null, masterBus = null;
-function initAC(){
-  if(AC) return;
-  AC = new(window.AudioContext || window.webkitAudioContext)();
-  if(AC.state === 'suspended') AC.resume();
+
+function initAC() {
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
   masterBus = AC.createDynamicsCompressor();
-  masterBus.threshold.value = -7;
-  masterBus.knee.value      = 8;
-  masterBus.ratio.value     = 5;
-  masterBus.attack.value    = 0.002;
-  masterBus.release.value   = 0.18;
+  masterBus.threshold.value = -8;
+  masterBus.knee.value = 10;
+  masterBus.ratio.value = 4;
+  masterBus.attack.value = 0.003;
+  masterBus.release.value = 0.18;
   masterBus.connect(AC.destination);
-}
-function dest(){ return masterBus || AC.destination; }
-
-// Zero-leak one-shot
-function fireShot(buf, vol=0.88, rate=1.0, fxFn=null, when=0){
-  if(!AC || !buf) return;
-  const t = when || AC.currentTime;
-  const g = AC.createGain(); g.gain.value = vol; g.connect(dest());
-  const src = AC.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
-  if(fxFn) fxFn(src, g);
-  else src.connect(g);
-  src.start(t);
-  src.onended = () => { try{ g.disconnect(); src.disconnect(); }catch(e){} };
+  if (AC.state === 'suspended') AC.resume();
 }
 
-// ═══════════════════════════════
-//  BPM
-// ═══════════════════════════════
-let BPM = 140;
-const STEPS = 16;
-function s16(){ return 60/BPM/4; }
-function barLen(){ return s16()*STEPS; }
-function updateBPMDisplay(){
-  document.getElementById('bpm-val').textContent = BPM;
+function dest() { return masterBus || AC.destination; }
+
+function shot(buf, vol, rate) {
+  if (!AC || !buf) return;
+  var g = AC.createGain();
+  g.gain.value = vol || 0.85;
+  g.connect(dest());
+  var s = AC.createBufferSource();
+  s.buffer = buf;
+  s.playbackRate.value = rate || 1;
+  s.connect(g);
+  s.start();
+  s.onended = function() { try { g.disconnect(); s.disconnect(); } catch(e){} };
 }
 
-// Clock — only for step indicator dots
-let clockStep=0, nextStepT=0, clockOn=false;
-function startClock(){
-  if(clockOn) return; clockOn=true;
-  nextStepT = AC.currentTime+0.04; clockStep=0; tickClock();
+// ══════════════════════════════════════════
+//  BPM & CLOCK
+// ══════════════════════════════════════════
+var BPM = 140;
+var STEPS = 16;
+function s16() { return 60 / BPM / 4; }
+function barLen() { return s16() * STEPS; }
+
+var clockStep = 0, nextStepT = 0, clockOn = false;
+function startClock() {
+  if (clockOn) return;
+  clockOn = true;
+  nextStepT = AC.currentTime + 0.05;
+  clockStep = 0;
+  tickClock();
 }
-function tickClock(){
-  while(nextStepT < AC.currentTime+0.18){
-    const s=clockStep, when=nextStepT;
-    const delay=Math.max(0,(when-AC.currentTime)*1000-10);
-    setTimeout(()=>{
-      document.querySelectorAll('.sq').forEach((d,i)=>d.classList.toggle('on',i===s));
-    },delay);
-    clockStep=(clockStep+1)%STEPS; nextStepT+=s16();
+function tickClock() {
+  while (nextStepT < AC.currentTime + 0.18) {
+    var s = clockStep, when = nextStepT;
+    var delay = Math.max(0, (when - AC.currentTime) * 1000 - 10);
+    (function(st) {
+      setTimeout(function() {
+        document.querySelectorAll('.sq').forEach(function(d, i) {
+          d.classList.toggle('on', i === st);
+        });
+      }, delay);
+    })(s);
+    clockStep = (clockStep + 1) % STEPS;
+    nextStepT += s16();
   }
-  setTimeout(tickClock,28);
+  setTimeout(tickClock, 28);
 }
 
-// ═══════════════════════════════
-//  UTILS
-// ═══════════════════════════════
-function mkBuf(dur, fn){
-  const sr=AC.sampleRate, n=Math.floor(sr*dur);
-  const buf=AC.createBuffer(1,n,sr);
-  fn(buf.getChannelData(0),sr,n);
+function updBPM() {
+  document.getElementById('bpm-disp').textContent = BPM;
+  if (clockOn && DRUMS) {
+    buildBeatBuffers();
+    balloons.forEach(function(b) { if (b.state === 'swelling') b.startAudio(); });
+  }
+}
+
+// ══════════════════════════════════════════
+//  DSP UTILS
+// ══════════════════════════════════════════
+function mkBuf(dur, fn) {
+  var sr = AC.sampleRate, n = Math.floor(sr * dur);
+  var buf = AC.createBuffer(1, n, sr);
+  fn(buf.getChannelData(0), sr, n);
   return buf;
 }
-function norm(d, ceil=0.9){
-  let pk=0; for(let i=0;i<d.length;i++) pk=Math.max(pk,Math.abs(d[i]));
-  if(pk>0.001){ const g=ceil/pk; for(let i=0;i<d.length;i++) d[i]*=g; }
+function norm(d, ceil) {
+  ceil = ceil || 0.9;
+  var pk = 0;
+  for (var i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i]));
+  if (pk > 0.001) { var g = ceil / pk; for (var i = 0; i < d.length; i++) d[i] *= g; }
 }
-function satCurve(k=200){
-  const n=512,c=new Float32Array(n);
-  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(Math.PI+k)*x/(Math.PI+k*Math.abs(x));}
+function satCurve(k) {
+  k = k || 200;
+  var n = 512, c = new Float32Array(n);
+  for (var i = 0; i < n; i++) { var x = i*2/n-1; c[i] = (Math.PI+k)*x/(Math.PI+k*Math.abs(x)); }
   return c;
 }
-function hardCurve(drive=3){
-  const n=512,c=new Float32Array(n);
-  for(let i=0;i<n;i++){let x=(i*2/n-1)*drive;c[i]=Math.max(-1,Math.min(1,x));}
+function hardCurve(drive) {
+  drive = drive || 3;
+  var n = 512, c = new Float32Array(n);
+  for (var i = 0; i < n; i++) { var x = (i*2/n-1)*drive; c[i] = Math.max(-1, Math.min(1, x)); }
   return c;
 }
-function applyWS(d, curve){
-  const n=curve.length;
-  for(let i=0;i<d.length;i++){
-    const idx=Math.floor((d[i]*.5+.5)*(n-1));
-    d[i]=curve[Math.max(0,Math.min(n-1,idx))];
+function applyWS(d, curve) {
+  var n = curve.length;
+  for (var i = 0; i < d.length; i++) {
+    var idx = Math.floor((d[i]*.5+.5)*(n-1));
+    d[i] = curve[Math.max(0, Math.min(n-1, idx))];
   }
 }
 
-// ═══════════════════════════════
-//  DRUM SYNTHESIS  — dubstep / baile
-// ═══════════════════════════════
-let DRUMS = null;
-function buildDrums(){
+// ══════════════════════════════════════════
+//  DRUM SYNTHESIS
+// ══════════════════════════════════════════
+var DRUMS = null;
 
-  function subKick(f0=44, drive=2.8, dur=1.4){
-    return mkBuf(dur,(d,sr)=>{
-      const sc=satCurve(100*drive); let ph=0;
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, f=f0*(1+8*Math.exp(-t*10));
-        ph+=2*Math.PI*f/sr;
-        d[i]=Math.exp(-t*2.6)*Math.sin(ph)
-           + Math.exp(-t*4)*0.4*Math.sin(ph*.5)
-           + Math.exp(-t*95)*(Math.random()*2-1)*0.4;
+function buildDrums() {
+  function subKick(f0, drive, dur) {
+    f0 = f0||44; drive = drive||2.8; dur = dur||1.3;
+    return mkBuf(dur, function(d, sr) {
+      var sc = satCurve(100*drive), ph = 0;
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, f = f0*(1+8*Math.exp(-t*10));
+        ph += 2*Math.PI*f/sr;
+        d[i] = Math.exp(-t*2.6)*Math.sin(ph)
+             + Math.exp(-t*4)*0.4*Math.sin(ph*.5)
+             + Math.exp(-t*90)*(Math.random()*2-1)*0.35;
       }
-      applyWS(d,sc); norm(d,0.92);
+      applyWS(d, sc); norm(d, 0.9);
     });
   }
-
-  function dubSnare(){
-    return mkBuf(0.42,(d,sr)=>{
-      const sc=satCurve(260), hc=hardCurve(2.2);
-      for(let i=0;i<d.length;i++){
-        const t=i/sr;
-        d[i]=(Math.random()*2-1)*Math.exp(-t*11)*0.55
-           + Math.sin(2*Math.PI*175*t)*Math.exp(-t*22)*0.45
-           + (Math.random()*2-1)*Math.exp(-t*95)*0.88
-           + (Math.random()*2-1)*Math.exp(-t*5)*0.22; // tail
+  function dubSnare() {
+    return mkBuf(0.4, function(d, sr) {
+      var sc = satCurve(240), hc = hardCurve(2);
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr;
+        d[i] = (Math.random()*2-1)*Math.exp(-t*11)*0.55
+             + Math.sin(2*Math.PI*175*t)*Math.exp(-t*22)*0.45
+             + (Math.random()*2-1)*Math.exp(-t*90)*0.85
+             + (Math.random()*2-1)*Math.exp(-t*5)*0.2;
       }
-      applyWS(d,sc); applyWS(d,hc); norm(d,0.9);
+      applyWS(d, sc); applyWS(d, hc); norm(d, 0.88);
     });
   }
-
-  function metalHat(open=false){
-    const dur=open?0.35:0.055;
-    return mkBuf(dur,(d,sr)=>{
-      const hc=hardCurve(1.8);
-      const fs=[5900,7100,8700,4900,9600,3800,11000];
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, env=open?Math.exp(-t*8.5):Math.exp(-t*92);
-        let v=0; for(const f of fs) v+=Math.sin(2*Math.PI*f*t);
-        d[i]=v/fs.length*env;
+  function metalHat(open) {
+    return mkBuf(open?0.35:0.055, function(d, sr) {
+      var hc = hardCurve(1.8);
+      var fs = [5900,7100,8700,4900,9600,3800];
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, env = open ? Math.exp(-t*8) : Math.exp(-t*90);
+        var v = 0; for (var j=0;j<fs.length;j++) v += Math.sin(2*Math.PI*fs[j]*t);
+        d[i] = v/fs.length*env;
       }
-      applyWS(d,hc); norm(d,0.44);
+      applyWS(d, hc); norm(d, 0.44);
     });
   }
-
-  function reeseSub(dur=0.3){
-    return mkBuf(dur,(d,sr)=>{
-      const sc=satCurve(200);
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, env=0.8*Math.exp(-t*2.5)+0.2;
-        let v=0;
-        for(let h=1;h<=7;h++){
-          v+=Math.sin(2*Math.PI*55*h*t)/h*0.7;
-          v+=Math.sin(2*Math.PI*55.7*h*t)/h*0.45;
+  function reese(dur) {
+    return mkBuf(dur||0.3, function(d, sr) {
+      var sc = satCurve(200);
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, env = 0.8*Math.exp(-t*2.5)+0.2;
+        var v = 0;
+        for (var h = 1; h <= 7; h++) {
+          v += Math.sin(2*Math.PI*55*h*t)/h*0.7;
+          v += Math.sin(2*Math.PI*55.7*h*t)/h*0.45;
         }
-        const wobble=0.5+0.5*Math.sin(2*Math.PI*(BPM/60*2)*t);
-        d[i]=v*env*wobble*0.14;
+        d[i] = v * env * (0.5+0.5*Math.sin(2*Math.PI*(BPM/60*2)*t)) * 0.14;
       }
-      applyWS(d,sc); norm(d,0.88);
+      applyWS(d, sc); norm(d, 0.88);
     });
   }
-
-  function bitCrunch(){
-    return mkBuf(0.2,(d,sr)=>{
-      const hc=hardCurve(4.5);
-      const step=2/64;
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, env=Math.exp(-t*13);
-        let v=(Math.random()*2-1)*env;
-        v=Math.round(v/step)*step;
-        v+=Math.sin(2*Math.PI*400*t)*env*0.4;
-        d[i]=v;
+  function crunch() {
+    return mkBuf(0.18, function(d, sr) {
+      var hc = hardCurve(4.5), step = 2/64;
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, env = Math.exp(-t*13);
+        var v = (Math.random()*2-1)*env;
+        v = Math.round(v/step)*step;
+        v += Math.sin(2*Math.PI*400*t)*env*0.4;
+        d[i] = v;
       }
-      applyWS(d,hc); norm(d,0.7);
+      applyWS(d, hc); norm(d, 0.7);
     });
   }
-
-  function sweepNoise(dur=0.22){
-    return mkBuf(dur,(d,sr)=>{
-      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
-      // progressive smoothing = LP sweep
-      for(let p=0;p<3;p++){
-        const a=1-(p/3)*0.65;
-        for(let i=1;i<d.length;i++) d[i]=d[i-1]*a+d[i]*(1-a);
+  function surdo() {
+    return mkBuf(1.0, function(d, sr) {
+      var sc = satCurve(85), ph = 0;
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, f = 64+72*Math.exp(-t*4.2);
+        ph += 2*Math.PI*f/sr;
+        d[i] = Math.exp(-t*2.6)*Math.sin(ph)+Math.exp(-t*4)*0.28*Math.sin(ph*.5)
+             + Math.exp(-t*38)*(Math.random()*2-1)*0.15;
       }
-      for(let i=0;i<d.length;i++){const t=i/d.length; d[i]*=t*(1-t*.25)*2.8;}
-      norm(d,0.7);
+      applyWS(d, sc); norm(d, 0.85);
     });
   }
-
-  // Brazilian instruments processed for dubstep
-  function surdo(){
-    return mkBuf(1.0,(d,sr)=>{
-      const sc=satCurve(85); let ph=0;
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, f=64+72*Math.exp(-t*4.2);
-        ph+=2*Math.PI*f/sr;
-        d[i]=Math.exp(-t*2.6)*Math.sin(ph)+Math.exp(-t*4)*0.28*Math.sin(ph*.5)
-           + Math.exp(-t*38)*(Math.random()*2-1)*0.16;
+  function conga(pitch) {
+    pitch = pitch||190;
+    return mkBuf(0.32, function(d, sr) {
+      var sc = satCurve(120);
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr, f = pitch*Math.exp(-t*3.2);
+        d[i] = Math.exp(-t*10)*(Math.sin(2*Math.PI*f*t)+0.25*Math.sin(2*Math.PI*f*2.2*t))
+             + Math.exp(-t*48)*(Math.random()*2-1)*0.38;
       }
-      applyWS(d,sc); norm(d,0.85);
+      applyWS(d, sc); norm(d, 0.76);
     });
   }
-
-  function conga(pitch=190){
-    return mkBuf(0.32,(d,sr)=>{
-      const sc=satCurve(120);
-      for(let i=0;i<d.length;i++){
-        const t=i/sr, f=pitch*Math.exp(-t*3.2);
-        d[i]=Math.exp(-t*10)*(Math.sin(2*Math.PI*f*t)+0.25*Math.sin(2*Math.PI*f*2.2*t))
-           + Math.exp(-t*48)*(Math.random()*2-1)*0.4;
+  function tamborim() {
+    return mkBuf(0.12, function(d, sr) {
+      var hc = hardCurve(2.2);
+      for (var i = 0; i < d.length; i++) {
+        var t = i/sr;
+        d[i] = Math.exp(-t*46)*(Math.random()*2-1)
+             + Math.exp(-t*30)*0.38*Math.sin(2*Math.PI*2200*t);
       }
-      applyWS(d,sc); norm(d,0.76);
-    });
-  }
-
-  function tamborim(){
-    return mkBuf(0.12,(d,sr)=>{
-      const hc=hardCurve(2.2);
-      for(let i=0;i<d.length;i++){
-        const t=i/sr;
-        d[i]=Math.exp(-t*46)*(Math.random()*2-1)
-           + Math.exp(-t*30)*0.38*Math.sin(2*Math.PI*2200*t);
-      }
-      applyWS(d,hc);
+      applyWS(d, hc);
     });
   }
 
   DRUMS = {
-    subKick:  subKick(44,2.8,1.4),
-    subKick2: subKick(38,3.2,1.6),
-    midKick:  subKick(62,1.8,0.8),
-    dubSnare:dubSnare(), dubSnareHard:dubSnare(),
-    hatC:metalHat(false), hatO:metalHat(true),
-    reese:reeseSub(0.3), reeseShort:reeseSub(0.15),
-    crunch:bitCrunch(), sweep:sweepNoise(),
-    surdo:surdo(), conga:conga(190), congaLow:conga(145), tamborim:tamborim(),
+    kick:    subKick(44, 2.8, 1.3),
+    kick2:   subKick(38, 3.2, 1.5),
+    kickMid: subKick(62, 1.8, 0.8),
+    snare:   dubSnare(),
+    snare2:  dubSnare(),
+    hatC:    metalHat(false),
+    hatO:    metalHat(true),
+    reese:   reese(0.3),
+    reeseS:  reese(0.15),
+    crunch:  crunch(),
+    surdo:   surdo(),
+    conga:   conga(190),
+    congaL:  conga(145),
+    tamb:    tamborim()
   };
 
-  // Build bar-length beat buffers for each lane
-  // These are mixed down into one AudioBuffer that loops
   buildBeatBuffers();
 }
 
-// ── Pre-rendered bar buffers ──
-// Instead of per-step scheduling, we bake an entire 1-bar drum
-// sequence into an AudioBuffer. This is rock-solid timing.
-let BEAT_BUFS = {}; // {baile: AudioBuffer, dub: AudioBuffer}
+// ══════════════════════════════════════════
+//  BEAT BUFFERS — pre-baked loops
+// ══════════════════════════════════════════
+var BEAT = {};
 
-function bakeBar(pattern){
-  // pattern = [{drumKey, step, vol}]
-  const sr   = AC.sampleRate;
-  const barN  = Math.floor(barLen() * sr);
-  const buf   = AC.createBuffer(1, barN, sr);
-  const out   = buf.getChannelData(0);
-  for(const hit of pattern){
-    const src = DRUMS[hit.drumKey];
-    if(!src) continue;
-    const srcData = src.getChannelData(0);
-    const offset  = Math.floor(hit.step * s16() * sr);
-    const vol     = hit.vol || 0.85;
-    for(let i=0;i<srcData.length;i++){
-      if(offset+i < barN) out[offset+i] += srcData[i]*vol;
+function bakeBar(pattern) {
+  var sr = AC.sampleRate;
+  var barN = Math.floor(barLen() * sr);
+  var buf = AC.createBuffer(1, barN, sr);
+  var out = buf.getChannelData(0);
+  for (var i = 0; i < pattern.length; i++) {
+    var hit = pattern[i];
+    var src = DRUMS[hit.d];
+    if (!src) continue;
+    var data = src.getChannelData(0);
+    var off = Math.floor(hit.step * s16() * sr);
+    var vol = hit.v || 0.85;
+    for (var j = 0; j < data.length; j++) {
+      if (off+j < barN) out[off+j] += data[j]*vol;
     }
   }
-  // normalise gently
   norm(out, 0.88);
   return buf;
 }
 
-function buildBeatBuffers(){
-  // BAILE FUNK pattern — syncopated Brazilian groove
-  const bailePattern = [
-    {drumKey:'surdo',    step:0,  vol:1.0},
-    {drumKey:'tamborim', step:1,  vol:0.65},
-    {drumKey:'conga',    step:2,  vol:0.7},
-    {drumKey:'tamborim', step:3,  vol:0.55},
-    {drumKey:'conga',    step:4,  vol:0.78},
-    {drumKey:'surdo',    step:5,  vol:0.6},
-    {drumKey:'tamborim', step:6,  vol:0.6},
-    {drumKey:'congaLow', step:7,  vol:0.72},
-    {drumKey:'surdo',    step:8,  vol:0.92},
-    {drumKey:'tamborim', step:9,  vol:0.62},
-    {drumKey:'conga',    step:10, vol:0.65},
-    {drumKey:'tamborim', step:11, vol:0.55},
-    {drumKey:'conga',    step:12, vol:0.78},
-    {drumKey:'tamborim', step:13, vol:0.58},
-    {drumKey:'surdo',    step:14, vol:0.7},
-    {drumKey:'conga',    step:15, vol:0.65},
-  ];
-
-  // DUB / PHONK pattern — heavy 808 + snare + hats
-  const dubPattern = [
-    {drumKey:'subKick',  step:0,  vol:1.0},
-    {drumKey:'hatC',     step:1,  vol:0.55},
-    {drumKey:'hatC',     step:2,  vol:0.48},
-    {drumKey:'dubSnare', step:4,  vol:0.9},
-    {drumKey:'hatC',     step:5,  vol:0.5},
-    {drumKey:'reese',    step:6,  vol:0.72},
-    {drumKey:'hatC',     step:7,  vol:0.48},
-    {drumKey:'subKick',  step:8,  vol:0.88},
-    {drumKey:'crunch',   step:9,  vol:0.65},
-    {drumKey:'subKick2', step:10, vol:0.7},
-    {drumKey:'hatC',     step:11, vol:0.5},
-    {drumKey:'dubSnare', step:12, vol:0.92},
-    {drumKey:'hatC',     step:13, vol:0.5},
-    {drumKey:'hatO',     step:14, vol:0.6},
-    {drumKey:'reese',    step:15, vol:0.65},
-  ];
-
-  BEAT_BUFS.baile = bakeBar(bailePattern);
-  BEAT_BUFS.dub   = bakeBar(dubPattern);
+function buildBeatBuffers() {
+  BEAT.baile = bakeBar([
+    {d:'surdo', step:0, v:1.0}, {d:'tamb', step:1, v:.65},
+    {d:'conga', step:2, v:.7},  {d:'tamb', step:3, v:.55},
+    {d:'conga', step:4, v:.78}, {d:'surdo',step:5, v:.6},
+    {d:'tamb',  step:6, v:.6},  {d:'congaL',step:7,v:.72},
+    {d:'surdo', step:8, v:.92}, {d:'tamb', step:9, v:.62},
+    {d:'conga', step:10,v:.65}, {d:'tamb', step:11,v:.55},
+    {d:'conga', step:12,v:.78}, {d:'tamb', step:13,v:.58},
+    {d:'surdo', step:14,v:.7},  {d:'conga',step:15,v:.65}
+  ]);
+  BEAT.dub = bakeBar([
+    {d:'kick',  step:0, v:1.0}, {d:'hatC', step:1, v:.55},
+    {d:'hatC',  step:2, v:.48}, {d:'hatC', step:3, v:.42},
+    {d:'snare', step:4, v:.9},  {d:'hatC', step:5, v:.5},
+    {d:'reese', step:6, v:.72}, {d:'hatC', step:7, v:.48},
+    {d:'kick',  step:8, v:.88}, {d:'crunch',step:9,v:.65},
+    {d:'kick2', step:10,v:.7},  {d:'hatC', step:11,v:.5},
+    {d:'snare2',step:12,v:.92}, {d:'hatC', step:13,v:.5},
+    {d:'hatO',  step:14,v:.6},  {d:'reeseS',step:15,v:.65}
+  ]);
 }
 
-// ═══════════════════════════════
-//  FX TRANSFORMS
-// ═══════════════════════════════
-// Applied on drop — to the running source
-
-const DROP_FX = [
-  {name:'PITCH UP',    col:'#cc44ff', apply:(src)=>{ src.playbackRate.value=1.5; }},
-  {name:'PITCH DOWN',  col:'#00ddaa', apply:(src)=>{ src.playbackRate.value=0.6; }},
-  {name:'HALF TIME',   col:'#8866ff', apply:(src)=>{ src.playbackRate.value=0.5; }},
-  {name:'DOUBLE',      col:'#ffdd44', apply:(src)=>{ src.playbackRate.value=2.0; }},
-  {name:'REVERSE',     col:'#ff4400', apply:(src,buf,g)=>{
-    // Rebuild reversed buffer
-    const b=buf, rev=AC.createBuffer(b.numberOfChannels,b.length,b.sampleRate);
-    for(let c=0;c<b.numberOfChannels;c++){
-      const a=b.getChannelData(c), d=rev.getChannelData(c);
-      for(let i=0;i<a.length;i++) d[i]=a[a.length-1-i];
+// ══════════════════════════════════════════
+//  DROP FX
+// ══════════════════════════════════════════
+var FX = [
+  {n:'PITCH UP',    c:'#cc44ff', fn:function(s){s.playbackRate.value=1.5;}},
+  {n:'PITCH DOWN',  c:'#00ddaa', fn:function(s){s.playbackRate.value=0.6;}},
+  {n:'HALF TIME',   c:'#8866ff', fn:function(s){s.playbackRate.value=0.5;}},
+  {n:'DOUBLE',      c:'#ffdd44', fn:function(s){s.playbackRate.value=2.0;}},
+  {n:'REVERSE',     c:'#ff4400', fn:function(s,buf){
+    var b=buf, rev=AC.createBuffer(b.numberOfChannels,b.length,b.sampleRate);
+    for(var c=0;c<b.numberOfChannels;c++){
+      var a=b.getChannelData(c),d=rev.getChannelData(c);
+      for(var i=0;i<a.length;i++) d[i]=a[a.length-1-i];
     }
-    src.buffer=rev;
+    s.buffer=rev;
   }},
-  {name:'8TH DELAY',   col:'#ffe066', chainFn:(g)=>{
-    const dl=AC.createDelay(2); dl.delayTime.value=s16()*2;
-    const fb=AC.createGain(); fb.gain.value=0.38;
-    const wet=AC.createGain(); wet.gain.value=0.55;
-    g.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(dest());
-    return [dl,fb,wet];
+  {n:'8TH DELAY',   c:'#ffe066', wet:true, fn:function(s,buf,g){
+    var dl=AC.createDelay(2); dl.delayTime.value=s16()*2;
+    var fb=AC.createGain(); fb.gain.value=0.38;
+    var w=AC.createGain(); w.gain.value=0.55;
+    g.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(w); w.connect(dest());
   }},
-  {name:'4TH DELAY',   col:'#ffaa00', chainFn:(g)=>{
-    const dl=AC.createDelay(2); dl.delayTime.value=s16()*4;
-    const fb=AC.createGain(); fb.gain.value=0.34;
-    const wet=AC.createGain(); wet.gain.value=0.5;
-    g.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(dest());
-    return [dl,fb,wet];
+  {n:'4TH DELAY',   c:'#ffaa00', wet:true, fn:function(s,buf,g){
+    var dl=AC.createDelay(2); dl.delayTime.value=s16()*4;
+    var fb=AC.createGain(); fb.gain.value=0.34;
+    var w=AC.createGain(); w.gain.value=0.5;
+    g.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(w); w.connect(dest());
   }},
-  {name:'DISTORT',     col:'#ff2244', chainFn:(g)=>{
-    const w=AC.createWaveShaper(); w.curve=satCurve(260);
-    const gain=AC.createGain(); gain.gain.value=0.44;
-    g.connect(w); w.connect(gain); gain.connect(dest());
-    return [w,gain];
+  {n:'DISTORT',     c:'#ff2244', wet:true, fn:function(s,buf,g){
+    var w=AC.createWaveShaper(); w.curve=satCurve(260);
+    var gn=AC.createGain(); gn.gain.value=0.44;
+    g.connect(w); w.connect(gn); gn.connect(dest());
   }},
-  {name:'BIT CRUSH',   col:'#ff6600', chainFn:(g)=>{
-    const w=AC.createWaveShaper(); w.curve=hardCurve(2.6);
-    const gain=AC.createGain(); gain.gain.value=0.5;
-    g.connect(w); w.connect(gain); gain.connect(dest());
-    return [w,gain];
+  {n:'BIT CRUSH',   c:'#ff6600', wet:true, fn:function(s,buf,g){
+    var w=AC.createWaveShaper(); w.curve=hardCurve(2.8);
+    var gn=AC.createGain(); gn.gain.value=0.5;
+    g.connect(w); w.connect(gn); gn.connect(dest());
   }},
-  {name:'STUTTER',     col:'#aa00ff', chainFn:(g)=>{
-    const lfo=AC.createOscillator(); lfo.frequency.value=1/s16();
-    const lg=AC.createGain(); lg.gain.value=0.5;
-    const tg=AC.createGain(); tg.gain.value=0.5;
+  {n:'STUTTER',     c:'#aa00ff', wet:true, fn:function(s,buf,g){
+    var lfo=AC.createOscillator(); lfo.frequency.value=1/s16();
+    var lg=AC.createGain(); lg.gain.value=0.5;
+    var tg=AC.createGain(); tg.gain.value=0.5;
     lfo.connect(lg); lg.connect(tg.gain);
     g.connect(tg); tg.connect(dest()); lfo.start();
-    return [lfo,lg,tg];
+    s.onended=function(){try{lfo.stop();}catch(e){}};
   }},
-  {name:'TAPE SAT',    col:'#88ff44', chainFn:(g)=>{
-    const w=AC.createWaveShaper(); w.curve=satCurve(70);
-    const c=AC.createDynamicsCompressor();
+  {n:'TAPE SAT',    c:'#88ff44', wet:true, fn:function(s,buf,g){
+    var w=AC.createWaveShaper(); w.curve=satCurve(70);
+    var c=AC.createDynamicsCompressor();
     c.threshold.value=-12; c.knee.value=16; c.ratio.value=6;
     c.attack.value=0.002; c.release.value=0.12;
     g.connect(w); w.connect(c); c.connect(dest());
-    return [w,c];
-  }},
-  {name:'RING MOD',    col:'#ff88ff', chainFn:(g)=>{
-    const osc=AC.createOscillator(); osc.frequency.value=BPM/60*18;
-    const mg=AC.createGain(); mg.gain.value=0;
-    osc.connect(mg.gain); g.connect(mg); mg.connect(dest()); osc.start();
-    return [osc,mg];
-  }},
+  }}
 ];
 
-function randFx(){ return DROP_FX[Math.floor(Math.random()*DROP_FX.length)]; }
+function randFX() { return FX[Math.floor(Math.random()*FX.length)]; }
 
-// ═══════════════════════════════
-//  PIXEL-ART DRAW HELPERS
-// ═══════════════════════════════
-const PX = 2; // pixel size
+// ══════════════════════════════════════════
+//  PIXEL DRAW
+// ══════════════════════════════════════════
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+var PX = 2; // pixel grid size
+var W, H;
 
-function px(x){ return Math.round(x/PX)*PX; }
-
-// Parse hex to [r,g,b]
-function hexRGB(hex){
-  return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  ctx.imageSmoothingEnabled = false;
 }
-function rgba(hex,a){
-  const[r,g,b]=hexRGB(hex); return `rgba(${r},${g},${b},${a})`;
-}
+resize();
+window.addEventListener('resize', resize);
 
-// Draw a pixelated circle (used for balloons)
-// Uses a filled rectangle per "pixel" for chunky look
-function pixelCircle(cx, cy, r, fillColor, shineColor, shadowColor){
-  const step = PX;
-  for(let dy=-r; dy<=r; dy+=step){
-    for(let dx=-r; dx<=r; dx+=step){
-      if(dx*dx+dy*dy <= r*r){
-        const x=px(cx+dx), y=px(cy+dy);
-        // Simple 3-shade pixel art shading
-        const dist=Math.sqrt(dx*dx+dy*dy)/r;
-        const shineZone = (dx<-r*0.2 && dy<-r*0.2);
-        const shadowZone= (dx>r*0.3  && dy>r*0.3);
-        let col = fillColor;
-        if(shineZone) col=shineColor;
-        else if(shadowZone) col=shadowColor;
-        ctx.fillStyle=col;
-        ctx.fillRect(x-step/2, y-step/2, step, step);
-      }
-    }
-  }
+function px(v) { return Math.round(v/PX)*PX; }
+
+function rgba(hex, a) {
+  var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
 }
 
-// Pixelated teardrop (falling drop)
-function pixelTeardrop(cx, cy, r, fillColor, shineColor, shadowColor){
-  const step=PX;
-  for(let dy=-Math.ceil(r*1.5); dy<=Math.ceil(r); dy+=step){
-    for(let dx=-Math.ceil(r); dx<=Math.ceil(r); dx+=step){
-      // Teardrop SDF: wider at bottom, pointed at top
-      const ny=dy/r, nx=dx/r;
-      let inside=false;
-      if(ny>-1.45 && ny<1.05){
-        const rAtY= ny<0 ? (1-Math.pow(ny+1.45,2)*0.18)*0.85 : 1-(ny-1.05)*(ny-1.05)*0.6;
-        inside = nx*nx <= rAtY*rAtY;
-      }
-      if(inside){
-        const x=px(cx+dx), y=px(cy+dy);
-        const shineZone=(dx<-r*.2 && dy<-r*.3);
-        const shadowZone=(dx>r*.25 && dy>r*.2);
-        ctx.fillStyle=shineZone?shineColor:shadowZone?shadowColor:fillColor;
-        ctx.fillRect(x-step/2,y-step/2,step,step);
-      }
+// Chunky pixel circle
+function pixCircle(cx, cy, r, fill, shine, shadow) {
+  cx=px(cx); cy=px(cy);
+  for (var dy=-r; dy<=r; dy+=PX) {
+    for (var dx=-r; dx<=r; dx+=PX) {
+      if (dx*dx+dy*dy > r*r) continue;
+      var col = fill;
+      if (dx < -r*.2 && dy < -r*.2) col = shine;
+      else if (dx > r*.28 && dy > r*.28) col = shadow;
+      ctx.fillStyle = col;
+      ctx.fillRect(px(cx+dx)-PX/2, px(cy+dy)-PX/2, PX, PX);
     }
   }
 }
 
-// Pixel splash particles
-function pixelSplash(x, y, col, particles){
-  for(const p of particles){
-    const px2=px(x+p.x), py2=px(y+p.y);
-    ctx.fillStyle=rgba(col, p.a);
-    ctx.fillRect(px2, py2, PX*2, PX*2);
+// Chunky pixel teardrop (for falling state)
+function pixDrop(cx, cy, r, fill, shine, shadow) {
+  cx=px(cx); cy=px(cy);
+  for (var dy=-Math.ceil(r*1.5); dy<=Math.ceil(r); dy+=PX) {
+    for (var dx=-Math.ceil(r); dx<=Math.ceil(r); dx+=PX) {
+      var ny=dy/r, nx=dx/r;
+      var rAtY = ny < 0 ? Math.sqrt(Math.max(0,1-(ny+1.45)*(ny+1.45)*.18)) : Math.sqrt(Math.max(0,1-(ny-1.05)*(ny-1.05)*.6));
+      if (nx*nx > rAtY*rAtY*0.85) continue;
+      var col = fill;
+      if (dx < -r*.2 && dy < -r*.3) col = shine;
+      else if (dx > r*.25 && dy > r*.2) col = shadow;
+      ctx.fillStyle = col;
+      ctx.fillRect(px(cx+dx)-PX/2, px(cy+dy)-PX/2, PX, PX);
+    }
   }
 }
 
-// ═══════════════════════════════
-//  BALLOON STATE MACHINE
-// ═══════════════════════════════
-// Each lane has one Balloon object.
-// States: SWELLING → (touch) → FALLING → (bottom) → SPLASH → SWELLING
+// ══════════════════════════════════════════
+//  BALLOON
+// ══════════════════════════════════════════
+var NOZZLE_Y = 112;
+var LANES = [.22, .5, .78];
+var COLS  = ['#cc44ff','#00ffaa','#ff6600'];
+var SHINE = ['#ee99ff','#99ffdd','#ffaa44'];
+var SHAD  = ['#660088','#006644','#882200'];
+var ROLES = ['sample','baile','dub'];
+var BALLOONS_MAX = 4;
 
-const LANES_X = [
-  ()=>W*0.22,
-  ()=>W*0.50,
-  ()=>W*0.78,
-];
-const LANE_COLORS = ['#cc44ff','#00ffaa','#ff6600'];
-const LANE_SHINE  = ['#ee99ff','#99ffdd','#ffaa44'];
-const LANE_SHADOW = ['#660088','#006644','#882200'];
-const LANE_ROLES  = ['sample','baile','dub'];
+var balloons = [];
 
-// Nozzle Y position
-const NOZZLE_Y = ()=> 108;
+function Balloon(nIdx) {
+  this.nIdx  = nIdx;
+  this.role  = ROLES[nIdx];
+  this.col   = COLS[nIdx];
+  this.shine = SHINE[nIdx];
+  this.shad  = SHAD[nIdx];
+  this.state = 'idle';
+  this.x     = LANES[nIdx] * W;
+  this.y     = NOZZLE_Y;
+  this.r     = 0;
+  this.maxR  = (28 + Math.floor(Math.random()*8)*PX);
+  this.vy    = 0;
+  this.vx    = 0;
+  this.fx    = null;
+  this.fxCol = COLS[nIdx];
+  this.glowT = 0;
+  this.swellStart = 0;
+  this.swellDur   = barLen() * 2;
+  this.particles  = [];
+  this._src  = null;
+  this._mst  = null;
+  this._cfEl = document.getElementById('cf'+(nIdx+1));
+}
 
-class Balloon {
-  constructor(nIdx){
-    this.nIdx  = nIdx;
-    this.role  = LANE_ROLES[nIdx];
-    this.col   = LANE_COLORS[nIdx];
-    this.shine = LANE_SHINE[nIdx];
-    this.shad  = LANE_SHADOW[nIdx];
-    this.state = 'idle';  // idle | swelling | falling | splash
-    this.x     = LANES_X[nIdx]();
-    this.y     = NOZZLE_Y();
-    this.r     = 0;       // current radius
-    this.maxR  = 28 + Math.floor(Math.random()*10)*PX;
-    this.vy    = 0;
-    this.vx    = 0;
-    this.fx    = null;    // applied FX on drop
-    this.fxNodes= [];     // audio nodes to clean up
-    this.splash = [];     // {x,y,vx,vy,a}
-    this.glowT = 0;
-    this.fxCol = this.col;
-    this._src  = null;
-    this._mst  = null;
-    this._chargeBar = document.getElementById(`cb${nIdx+1}`);
-    this._swellStart = 0;
-    this._swellDur   = barLen() * 2; // swell over 2 bars
+Balloon.prototype.startSwell = function() {
+  this.state = 'swelling';
+  this.x = LANES[this.nIdx] * W;
+  this.y = NOZZLE_Y;
+  this.r = PX*2;
+  this.vy = 0; this.vx = 0;
+  this.fx = null; this.fxCol = this.col;
+  this.swellStart = performance.now();
+  this.swellDur = barLen() * 2;
+  this.startAudio();
+};
+
+Balloon.prototype.startAudio = function() {
+  this.stopAudio();
+  if (!AC) return;
+  var buf = null;
+  if (this.role === 'sample') { buf = fullBuffer; }
+  else if (this.role === 'baile') { buf = BEAT.baile; }
+  else { buf = BEAT.dub; }
+  if (!buf) return;
+  var mst = AC.createGain(); mst.gain.value = 0.75; mst.connect(dest());
+  var src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
+  src.connect(mst); src.start();
+  this._src = src; this._mst = mst;
+};
+
+Balloon.prototype.stopAudio = function() {
+  if (this._src) { try { this._src.stop(); } catch(e){} this._src = null; }
+  if (this._mst) { try { this._mst.disconnect(); } catch(e){} this._mst = null; }
+};
+
+Balloon.prototype.release = function() {
+  if (this.state !== 'swelling') return;
+  this.state = 'falling';
+  this.vy = 2.5 + Math.random()*1.5;
+  this.vx = (Math.random()-.5)*2;
+  this.glowT = 60;
+  this.fx = randFX();
+  this.fxCol = this.fx.c;
+  if (this._cfEl) this._cfEl.style.width = '100%';
+
+  // Apply FX to running audio
+  if (this._src && this._mst) {
+    var fx = this.fx;
+    fx.fn(this._src, this._src.buffer, this._mst);
+  }
+  showToast(this.fx.n, this.fx.c);
+};
+
+Balloon.prototype.update = function(dt) {
+  this.x = LANES[this.nIdx] * W; // track lane
+
+  if (this.state === 'swelling') {
+    var elapsed = (performance.now() - this.swellStart) / 1000;
+    var t = Math.min(1, elapsed / this.swellDur);
+    var ease = t < .5 ? 2*t*t : 1-2*(1-t)*(1-t);
+    var pulse = 1 + .04*Math.sin(elapsed*(BPM/60)*Math.PI*2);
+    this.r = Math.max(PX*2, Math.round((PX*2 + (this.maxR - PX*2)*ease)*pulse / PX)*PX);
+    if (this._cfEl) this._cfEl.style.width = (t*100) + '%';
+    if (t >= 1) this.release();
   }
 
-  startSwell(){
-    this.state   = 'swelling';
-    this.r       = 4;
-    this.x       = LANES_X[this.nIdx]();
-    this.y       = NOZZLE_Y();
-    this.vy      = 0; this.vx=0;
-    this.fx      = null; this.fxCol=this.col;
-    this._swellStart = performance.now();
-    this._startAudio();
+  if (this.state === 'falling') {
+    this.vy += 0.3*dt*60;
+    this.y  += this.vy*dt*60;
+    this.x  += this.vx*dt*60;
+    this.vx *= Math.pow(.97, dt*60);
+    if (this.glowT > 0) this.glowT -= dt*60;
+    if (this.y > H + this.r + 30) this.pop();
   }
 
-  _startAudio(){
-    this._stopAudio();
-    if(!AC) return;
-    let buf = null;
-    if(this.role==='sample'){
-      if(!fullBuffer) return;
-      buf = fullBuffer;
-    } else {
-      const key = this.role==='baile'?'baile':'dub';
-      buf = BEAT_BUFS[key] || null;
+  if (this.state === 'splash') {
+    var alive = false;
+    for (var i = 0; i < this.particles.length; i++) {
+      var p = this.particles[i];
+      p.x += p.vx*dt*60; p.y += p.vy*dt*60;
+      p.vy += .2*dt*60; p.a -= dt*1.8;
+      if (p.a > 0) alive = true;
     }
-    if(!buf) return;
-    const mst = AC.createGain(); mst.gain.value=0.78; mst.connect(dest());
-    const src = AC.createBufferSource();
-    src.buffer = buf; src.loop=true;
-    src.connect(mst); src.start();
-    this._src=src; this._mst=mst;
-  }
-
-  _stopAudio(){
-    if(this._src){try{this._src.stop();}catch(e){} this._src=null;}
-    if(this._mst){try{this._mst.disconnect();}catch(e){} this._mst=null;}
-    // clean up FX chain nodes
-    for(const n of this.fxNodes){try{n.disconnect();}catch(e){}}
-    this.fxNodes=[];
-  }
-
-  // User touched this balloon
-  release(){
-    if(this.state!=='swelling') return;
-    this.state='falling';
-    this.vy = 2.5 + Math.random()*1.5;
-    this.vx = (Math.random()-0.5)*1.8;
-    this.fx = randFx();
-    this.fxCol = this.fx.col;
-    this.glowT = 60;
-    // Apply FX to playing source
-    this._applyFxToRunning();
-    showToast(this.fx.name, this.fx.col);
-  }
-
-  _applyFxToRunning(){
-    if(!this._src || !this._mst) return;
-    const fx=this.fx;
-    // Playback rate changes (pitch, speed) — apply directly to source
-    if(fx.apply) fx.apply(this._src, this._src.buffer, this._mst);
-    // Chain FX: tap off the master gain node in parallel
-    // master already connects to dest; chainFn adds a wet parallel path
-    if(fx.chainFn){
-      const nodes=fx.chainFn(this._mst);
-      if(nodes) this.fxNodes.push(...nodes);
-    }
-  }
-
-  update(dt){
-    this.x = LANES_X[this.nIdx](); // track lane even if resized
-
-    if(this.state==='swelling'){
-      const elapsed=(performance.now()-this._swellStart)/1000;
-      const t=Math.min(1, elapsed/this._swellDur);
-      // Ease in swell + slight pulse
-      const pulse=1+0.04*Math.sin(elapsed*(BPM/60)*Math.PI*2);
-      this.r = Math.floor((4 + (this.maxR-4)*easeInOut(t))*pulse / PX)*PX;
-      this.r = Math.max(4,this.r);
-      // Update charge bar
-      if(this._chargeBar) this._chargeBar.style.width=(t*100)+'%';
-      // Auto-drop when fully swollen
-      if(t>=1) this.release();
-    }
-
-    if(this.state==='falling'){
-      this.vy += 0.28*dt*60;
-      this.x  += this.vx*dt*60;
-      this.y  += this.vy*dt*60;
-      this.vx *= Math.pow(0.98,dt*60);
-      if(this.glowT>0) this.glowT-=dt*60;
-      if(this.y > H+this.r+20) this._pop();
-    }
-
-    if(this.state==='splash'){
-      let alive=false;
-      for(const p of this.splash){
-        p.x+=p.vx*dt*60; p.y+=p.vy*dt*60;
-        p.vy+=0.18*dt*60; p.a-=dt*1.8;
-        if(p.a>0) alive=true;
-      }
-      if(!alive){
-        this.state='idle';
-        this._chargeBar && (this._chargeBar.style.width='0%');
-      }
+    if (!alive) {
+      this.state = 'idle';
+      if (this._cfEl) this._cfEl.style.width = '0%';
+      var self = this;
+      setTimeout(function() {
+        if (self.state === 'idle') self.startSwell();
+      }, 400 + Math.random()*300);
     }
   }
+};
 
-  _pop(){
-    this.state='splash';
-    this._stopAudio();
-    // Generate splash particles — pixel-aligned
-    this.splash=[];
-    const N=22;
-    for(let i=0;i<N;i++){
-      const angle=Math.random()*Math.PI*2;
-      const speed=1.5+Math.random()*3.5;
-      this.splash.push({
-        x:0,y:0,
-        vx:Math.cos(angle)*speed,
-        vy:Math.sin(angle)*speed-2,
-        a:0.7+Math.random()*0.3,
-      });
+Balloon.prototype.pop = function() {
+  this.state = 'splash';
+  this.stopAudio();
+  this.particles = [];
+  for (var i = 0; i < 20; i++) {
+    var a = Math.random()*Math.PI*2, sp = 1.5+Math.random()*3.5;
+    this.particles.push({
+      x:0, y:0,
+      vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-2,
+      a:.8+Math.random()*.2
+    });
+  }
+};
+
+Balloon.prototype.contains = function(tx, ty) {
+  if (this.state !== 'swelling') return false;
+  return (tx-this.x)*(tx-this.x)+(ty-this.y)*(ty-this.y) <= (this.r+16)*(this.r+16);
+};
+
+Balloon.prototype.draw = function() {
+  if (this.state === 'idle') return;
+
+  var cx = px(this.x), cy = px(this.y), r = this.r;
+  var col = this.fxCol, fill = this.col, shine = this.shine, shad = this.shad;
+
+  if (this.state === 'splash') {
+    for (var i = 0; i < this.particles.length; i++) {
+      var p = this.particles[i];
+      if (p.a <= 0) continue;
+      ctx.fillStyle = rgba(col, p.a);
+      ctx.fillRect(px(cx+p.x), px(cy+p.y), PX*2, PX*2);
     }
-    // Auto-restart swell after short delay
-    setTimeout(()=>{
-      if(this.state==='idle') this.startSwell();
-    }, 600+Math.random()*400);
+    return;
   }
 
-  // Hit test: is a point inside this balloon?
-  contains(tx, ty){
-    if(this.state!=='swelling') return false;
-    return (tx-this.x)**2+(ty-this.y)**2 <= (this.r+12)**2;
+  // Glow
+  if (this.glowT > 0) {
+    var ga = Math.min(1, this.glowT/60)*.2;
+    ctx.save();
+    ctx.shadowColor = col; ctx.shadowBlur = 28*(this.glowT/60);
+    ctx.fillStyle = rgba(col, ga);
+    ctx.beginPath(); ctx.arc(cx, cy, r+10, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
   }
 
-  draw(){
-    if(this.state==='idle') return;
-
-    if(this.state==='splash'){
-      pixelSplash(this.x, this.y, this.fxCol, this.splash);
-      return;
-    }
-
-    const r=Math.max(PX*2, this.r);
-    const cx=px(this.x), cy=px(this.y);
-
-    // Glow halo
-    if(this.glowT>0){
-      const a=Math.min(1,this.glowT/60)*.22;
+  if (this.state === 'swelling') {
+    // Nozzle stem
+    ctx.fillStyle = shad;
+    ctx.fillRect(cx-PX, NOZZLE_Y, PX*2, Math.max(0, cy-NOZZLE_Y));
+    pixCircle(cx, cy, r, fill, shine, shad);
+    // Label inside
+    if (r > 16) {
       ctx.save();
-      ctx.shadowColor=this.fxCol; ctx.shadowBlur=32*(this.glowT/60);
-      ctx.fillStyle=rgba(this.fxCol,a);
-      ctx.beginPath(); ctx.arc(cx,cy,r+10,0,Math.PI*2); ctx.fill();
+      ctx.font = Math.max(6, Math.min(9, r*.38)) + 'px "Press Start 2P"';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      var lbl = this.role==='sample'?'SMP':this.role==='baile'?'BLF':'DUB';
+      ctx.fillText(lbl, cx, cy);
       ctx.restore();
     }
+  }
 
-    if(this.state==='swelling'){
-      // Balloon: pixel circle with nozzle neck
-      // Nozzle line
-      ctx.fillStyle=this.shad;
-      ctx.fillRect(cx-PX, NOZZLE_Y()-4, PX*2, cy-NOZZLE_Y()+8);
-
-      pixelCircle(cx, cy, r, this.col, this.shine, this.shad);
-
-      // Pixel outline ring
-      for(let angle=0;angle<Math.PI*2;angle+=0.18){
-        const ox=px(cx+Math.cos(angle)*(r+PX)), oy=px(cy+Math.sin(angle)*(r+PX));
-        ctx.fillStyle=this.shad;
-        ctx.fillRect(ox-PX/2,oy-PX/2,PX,PX);
-      }
-
-      // Pulsing label inside
-      if(r>14){
-        ctx.save();
-        ctx.font=`${Math.max(7,Math.min(10,r*.4))}px 'Press Start 2P',monospace`;
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=rgba('#ffffff',0.55);
-        const label=this.role==='sample'?'SMP':this.role==='baile'?'BLF':'DUB';
-        ctx.fillText(label, cx, cy);
-        ctx.restore();
-      }
+  if (this.state === 'falling') {
+    pixDrop(cx, cy, r, fill, shine, shad);
+    // Trail
+    for (var i=1; i<=6; i++) {
+      var ty2 = px(cy - i*r*0.28), tr2 = Math.max(PX, Math.round(r*(1-i/6)*.45/PX)*PX);
+      ctx.fillStyle = rgba(col, (1-i/6)*.15);
+      ctx.fillRect(cx-tr2, ty2-tr2, tr2*2, tr2*2);
     }
-
-    if(this.state==='falling'){
-      pixelTeardrop(cx, cy, r, this.col, this.shine, this.shad);
-
-      // FX name tag
-      if(this.fx && r>10){
-        ctx.save();
-        ctx.font=`${Math.max(6,Math.min(8,r*.35))}px 'Press Start 2P',monospace`;
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillStyle=rgba(this.fx.col, 0.85);
-        ctx.shadowColor=this.fx.col; ctx.shadowBlur=6;
-        // Pixel shadow
-        ctx.fillStyle='#000';
-        ctx.fillText(this.fx.name, cx+PX, cy+PX);
-        ctx.fillStyle=rgba(this.fx.col, 0.9);
-        ctx.fillText(this.fx.name, cx, cy);
-        ctx.restore();
-      }
-
-      // Trail
-      const trailLen=8;
-      for(let i=1;i<=trailLen;i++){
-        const ty2=px(cy-i*r*0.3), tr=Math.max(PX,Math.floor(r*(1-i/trailLen)*.5/PX)*PX);
-        ctx.fillStyle=rgba(this.fxCol,(1-i/trailLen)*0.18);
-        ctx.fillRect(cx-tr,ty2-tr,tr*2,tr*2);
-      }
+    // FX label
+    if (this.fx && r > 10) {
+      ctx.save();
+      ctx.font = Math.max(5, Math.min(7, r*.32)) + 'px "Press Start 2P"';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#000';
+      ctx.fillText(this.fx.n, cx+PX, cy+PX);
+      ctx.fillStyle = this.fx.c;
+      ctx.fillText(this.fx.n, cx, cy);
+      ctx.restore();
     }
   }
+};
+
+// ══════════════════════════════════════════
+//  BACKGROUND
+// ══════════════════════════════════════════
+function drawBg() {
+  ctx.clearRect(0, 0, W, H);
+  // Pixel grid
+  ctx.fillStyle = 'rgba(36,27,56,.16)';
+  for (var x=0; x<W; x+=PX*4) ctx.fillRect(x, 0, 1, H);
+  for (var y=0; y<H; y+=PX*4) ctx.fillRect(0, y, W, 1);
+  // Vignette
+  var vg = ctx.createRadialGradient(W*.5,H*.5,H*.06,W*.5,H*.5,H*.96);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(0,0,0,.72)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  // Lane dashes
+  for (var i=0; i<3; i++) {
+    var lx = px(LANES[i]*W), col2 = COLS[i];
+    ctx.fillStyle = rgba(col2, .07);
+    for (var y2=NOZZLE_Y; y2<H; y2+=PX*6) ctx.fillRect(lx-PX, y2, PX*2, PX*3);
+  }
+  // Nozzle heads
+  for (var i=0; i<3; i++) {
+    var nx = px(LANES[i]*W);
+    ctx.fillStyle = SHAD[i];
+    ctx.fillRect(nx-PX*5, NOZZLE_Y-PX*8, PX*10, PX*8);
+    ctx.fillStyle = COLS[i];
+    ctx.fillRect(nx-PX*4, NOZZLE_Y-PX*9, PX*8, PX*8);
+    ctx.fillRect(nx-PX*2, NOZZLE_Y-PX*2, PX*4, PX*3);
+    ctx.fillStyle = SHINE[i];
+    ctx.fillRect(nx-PX*3, NOZZLE_Y-PX*8, PX*2, PX*3);
+  }
+  // Scanlines
+  ctx.fillStyle = 'rgba(0,0,0,.1)';
+  for (var y3=0; y3<H; y3+=4) ctx.fillRect(0, y3+2, W, 2);
 }
 
-function easeInOut(t){ return t<0.5?2*t*t:1-2*(1-t)*(1-t); }
-
-// ═══════════════════════════════
-//  BACKGROUND — pixel art
-// ═══════════════════════════════
-let frameCount=0;
-
-function drawBg(){
-  ctx.clearRect(0,0,W,H);
-
-  // Pixel grid — subtle
-  ctx.fillStyle='rgba(42,31,68,0.18)';
-  for(let x=0;x<W;x+=PX*4) ctx.fillRect(x,0,1,H);
-  for(let y=0;y<H;y+=PX*4) ctx.fillRect(0,y,W,1);
-
-  // Lane lanes — pixelated dashes
-  for(let i=0;i<3;i++){
-    const x=px(LANES_X[i]()), col=LANE_COLORS[i];
-    const[r,g,b]=hexRGB(col);
-    ctx.fillStyle=`rgba(${r},${g},${b},0.09)`;
-    for(let y=NOZZLE_Y();y<H;y+=PX*6) ctx.fillRect(x-PX,y,PX*2,PX*4);
-  }
-
-  // Nozzle heads — pixel art spout shapes
-  for(let i=0;i<3;i++){
-    const x=px(LANES_X[i]()), y=NOZZLE_Y();
-    const col=LANE_COLORS[i], shad=LANE_SHADOW[i];
-    // Spout body
-    ctx.fillStyle=shad;
-    ctx.fillRect(x-PX*5,y-PX*8,PX*10,PX*8);
-    ctx.fillStyle=col;
-    ctx.fillRect(x-PX*4,y-PX*9,PX*8,PX*8);
-    // Drip opening
-    ctx.fillStyle=col;
-    ctx.fillRect(x-PX*2,y-PX*2,PX*4,PX*3);
-    // Highlight
-    ctx.fillStyle=LANE_SHINE[i];
-    ctx.fillRect(x-PX*3,y-PX*8,PX*2,PX*3);
-  }
-
-  // Scanlines (subtle)
-  ctx.fillStyle='rgba(0,0,0,0.12)';
-  for(let y=0;y<H;y+=4){ ctx.fillRect(0,y+2,W,2); }
-}
-
-// ═══════════════════════════════
-//  TOAST / FX DISPLAY
-// ═══════════════════════════════
-let toastTimer=0, toastRAF=null;
-function showToast(name, col){
-  const el=document.getElementById('fx-toast');
-  el.textContent='[ '+name+' ]';
-  el.style.color=col;
-  el.style.borderColor=col;
-  el.style.boxShadow=`0 3px 0 #000, inset 0 0 0 2px ${col}, 0 0 16px ${col}44`;
-  el.style.opacity='1';
-  toastTimer=180;
-  if(toastRAF) cancelAnimationFrame(toastRAF);
-  function fade(){
-    toastTimer--;
-    if(toastTimer<50) el.style.opacity=(toastTimer/50).toFixed(3);
-    if(toastTimer>0) toastRAF=requestAnimationFrame(fade);
-    else el.style.opacity='0';
-  }
-  toastRAF=requestAnimationFrame(fade);
-}
-
-// ═══════════════════════════════
+// ══════════════════════════════════════════
 //  MAIN LOOP
-// ═══════════════════════════════
-let balloons=[], appStarted=false, lastT=0, fullBuffer=null;
+// ══════════════════════════════════════════
+var appStarted = false, lastT = 0;
 
-function loop(ts){
+function loop(ts) {
   requestAnimationFrame(loop);
-  frameCount++;
-  if(!appStarted) return;
-  const dt=Math.min((ts-lastT)/1000,.05); lastT=ts;
+  if (!appStarted) return;
+  var dt = Math.min((ts-lastT)/1000, .05);
+  lastT = ts;
   drawBg();
-  for(const b of balloons){ b.update(dt); b.draw(); }
+  for (var i=0; i<balloons.length; i++) {
+    balloons[i].update(dt);
+    balloons[i].draw();
+  }
 }
 requestAnimationFrame(loop);
 
-// ═══════════════════════════════
-//  TOUCH — hit balloons
-// ═══════════════════════════════
-function handleCanvasTap(tx, ty){
-  if(!appStarted) return;
-  for(const b of balloons){
-    if(b.contains(tx,ty)){ b.release(); return; }
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+var toastRaf = 0, toastTimer = 0;
+function showToast(name, col) {
+  var el = document.getElementById('toast');
+  el.textContent = '[ ' + name + ' ]';
+  el.style.color = col;
+  el.style.borderColor = col;
+  el.style.opacity = '1';
+  toastTimer = 160;
+  cancelAnimationFrame(toastRaf);
+  function fade() {
+    toastTimer--;
+    if (toastTimer < 50) el.style.opacity = (toastTimer/50).toFixed(2);
+    if (toastTimer > 0) toastRaf = requestAnimationFrame(fade);
+    else el.style.opacity = '0';
   }
-  let nearest=null, nearDist=Infinity;
-  for(const b of balloons){
-    if(b.state!=='swelling') continue;
-    const d=Math.hypot(tx-b.x, ty-b.y);
-    if(d<nearDist){ nearDist=d; nearest=b; }
-  }
-  if(nearest && nearDist < 140) nearest.release();
+  toastRaf = requestAnimationFrame(fade);
 }
-let canvasLastTap=0;
-canvas.addEventListener('touchend', e=>{
+
+// ══════════════════════════════════════════
+//  SPAWN BALLOON
+// ══════════════════════════════════════════
+function spawnBalloon(nIdx) {
+  if (!appStarted) return;
+  if (nIdx === 0 && !fullBuffer) return;
+  var existing = null;
+  for (var i=0; i<balloons.length; i++) if (balloons[i].nIdx===nIdx) { existing=balloons[i]; break; }
+  if (existing) {
+    if (existing.state === 'swelling') existing.release();
+    return;
+  }
+  var b = new Balloon(nIdx);
+  balloons.push(b);
+  b.startSwell();
+}
+
+// ══════════════════════════════════════════
+//  CANVAS TAP
+// ══════════════════════════════════════════
+function canvasTap(tx, ty) {
+  if (!appStarted) return;
+  for (var i=0; i<balloons.length; i++) {
+    if (balloons[i].contains(tx, ty)) { balloons[i].release(); return; }
+  }
+  // tap anywhere near a swelling balloon
+  var best = null, bestD = 160;
+  for (var i=0; i<balloons.length; i++) {
+    if (balloons[i].state !== 'swelling') continue;
+    var d = Math.hypot(tx - balloons[i].x, ty - balloons[i].y);
+    if (d < bestD) { bestD = d; best = balloons[i]; }
+  }
+  if (best) best.release();
+}
+
+var lastCanvasTap = 0;
+canvas.addEventListener('touchend', function(e) {
   e.preventDefault();
-  const now=Date.now(); if(now-canvasLastTap<200) return; canvasLastTap=now;
-  const t=e.changedTouches[0];
-  handleCanvasTap(t.clientX, t.clientY);
-}, {passive:false});
-canvas.addEventListener('click', e=>{
-  const now=Date.now(); if(now-canvasLastTap<300) return; canvasLastTap=now;
-  handleCanvasTap(e.clientX, e.clientY);
+  var now = Date.now(); if (now-lastCanvasTap < 200) return; lastCanvasTap = now;
+  var t = e.changedTouches[0];
+  canvasTap(t.clientX, t.clientY);
+}, { passive: false });
+canvas.addEventListener('click', function(e) {
+  var now = Date.now(); if (now-lastCanvasTap < 300) return; lastCanvasTap = now;
+  canvasTap(e.clientX, e.clientY);
 });
 
-// ═══ RECORDING ═══
-let mediaStream=null, mediaRecorder=null, recChunks=[];
-let isRecording=false, recStartTime=0, recTimerRAF=null;
-let analyserNode=null, waveRAF=null, fullBuffer=null;
+// ══════════════════════════════════════════
+//  LAUNCH APP
+// ══════════════════════════════════════════
+function launchApp() {
+  if (!fullBuffer) return;
+  initAC();
+  try {
+    buildDrums();
+    startClock();
+  } catch(e) {
+    console.error('Launch error:', e);
+    document.getElementById('rec-status').textContent = 'ERROR: ' + e.message;
+    return;
+  }
+  appStarted = true;
+  lastT = performance.now();
+  showScreen('s-main');
+  setTimeout(function(){ spawnBalloon(0); }, 200);
+  setTimeout(function(){ spawnBalloon(1); }, 500);
+  setTimeout(function(){ spawnBalloon(2); }, 800);
+}
 
-const wfCan  = document.getElementById('waveform');
-const wfCtx2 = wfCan.getContext('2d');
-wfCtx2.imageSmoothingEnabled = false;
+// ══════════════════════════════════════════
+//  RECORDING
+// ══════════════════════════════════════════
+var fullBuffer = null;
+var mediaStream = null, mediaRecorder = null, recChunks = [];
+var isRecording = false, recStartT = 0, recTimerRaf = 0;
+var analyserNode = null, waveRaf = 0;
 
-function setRecLabel(txt){ document.getElementById('rec-lbl').textContent = txt; }
+var wfCan = document.getElementById('waveform');
+var wfCtx = wfCan.getContext('2d');
 
-function drawWaveLive(){
-  if(!analyserNode){ waveRAF=requestAnimationFrame(drawWaveLive); return; }
-  const data = new Uint8Array(analyserNode.fftSize);
+function setStatus(t) { document.getElementById('rec-status').textContent = t; }
+
+function drawWaveLive() {
+  if (!analyserNode) { waveRaf = requestAnimationFrame(drawWaveLive); return; }
+  var data = new Uint8Array(analyserNode.fftSize);
   analyserNode.getByteTimeDomainData(data);
-  const cw=wfCan.width, ch=wfCan.height;
-  wfCtx2.fillStyle='#110e1c'; wfCtx2.fillRect(0,0,cw,ch);
-  const bw = Math.max(2, Math.floor(cw/data.length*2));
-  for(let x=0;x<cw;x+=bw){
-    const idx=Math.floor(x/cw*data.length);
-    const v=(data[Math.min(idx,data.length-1)]/128-1)*(ch/2);
-    wfCtx2.fillStyle='#cc44ff';
-    wfCtx2.fillRect(x, ch/2-Math.abs(v), bw-1, Math.max(2,Math.abs(v)*2));
+  var cw = wfCan.width, ch = wfCan.height;
+  wfCtx.fillStyle = '#110e1c'; wfCtx.fillRect(0,0,cw,ch);
+  var bw = Math.max(2, Math.floor(cw/data.length*2));
+  for (var x=0; x<cw; x+=bw) {
+    var idx = Math.floor(x/cw*data.length);
+    var v = (data[Math.min(idx,data.length-1)]/128-1)*(ch/2);
+    wfCtx.fillStyle = '#cc44ff';
+    wfCtx.fillRect(x, ch/2-Math.abs(v), bw-1, Math.max(2,Math.abs(v)*2));
   }
-  waveRAF = requestAnimationFrame(drawWaveLive);
+  waveRaf = requestAnimationFrame(drawWaveLive);
 }
 
-function drawWaveStatic(buf){
-  const cw=wfCan.width, ch=wfCan.height;
-  const data=buf.getChannelData(0);
-  const step=Math.ceil(data.length/cw);
-  wfCtx2.fillStyle='#08060f'; wfCtx2.fillRect(0,0,cw,ch);
-  for(let x=0;x<cw;x+=2){
-    let mn=1,mx=-1;
-    for(let s=0;s<step*2;s++){
-      const v=data[x*step+s]||0;
-      if(v<mn)mn=v; if(v>mx)mx=v;
-    }
-    const y1=Math.floor(ch/2+mn*ch*.47), y2=Math.floor(ch/2+mx*ch*.47);
-    wfCtx2.fillStyle='#cc44ff';
-    wfCtx2.fillRect(x,Math.min(y1,y2),1,Math.max(1,Math.abs(y2-y1)));
+function drawWaveStatic(buf) {
+  var cw=wfCan.width, ch=wfCan.height, data=buf.getChannelData(0);
+  var step=Math.ceil(data.length/cw);
+  wfCtx.fillStyle='#08060f'; wfCtx.fillRect(0,0,cw,ch);
+  for (var x=0; x<cw; x+=2) {
+    var mn=1, mx=-1;
+    for (var s=0; s<step*2; s++) { var v=data[x*step+s]||0; if(v<mn)mn=v; if(v>mx)mx=v; }
+    var y1=Math.floor(ch/2+mn*ch*.46), y2=Math.floor(ch/2+mx*ch*.46);
+    wfCtx.fillStyle='#cc44ff';
+    wfCtx.fillRect(x, Math.min(y1,y2), 1, Math.max(1,Math.abs(y2-y1)));
   }
 }
 
-function updateTimer(){
-  const e=(Date.now()-recStartTime)/1000;
-  const mm=Math.floor(e/60).toString().padStart(2,'0');
-  const ss=Math.floor(e%60).toString().padStart(2,'0');
-  document.getElementById('rec-timer').textContent=mm+':'+ss;
-  if(isRecording) recTimerRAF=requestAnimationFrame(updateTimer);
+function updateTimer() {
+  var e = (Date.now()-recStartT)/1000;
+  var mm = Math.floor(e/60).toString().padStart(2,'0');
+  var ss = Math.floor(e%60).toString().padStart(2,'0');
+  document.getElementById('rec-timer').textContent = mm+':'+ss;
+  if (isRecording) recTimerRaf = requestAnimationFrame(updateTimer);
 }
 
-function getSupportedMime(){
-  for(const t of['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'])
-    if(MediaRecorder.isTypeSupported(t)) return t;
+function getSupportedMime() {
+  var types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+  for (var i=0; i<types.length; i++) if (MediaRecorder.isTypeSupported(types[i])) return types[i];
   return '';
 }
 
-async function startRecording(){
+async function startRecording() {
+  // Must init AC on user gesture for iOS
   initAC();
-  try{
-    mediaStream = await navigator.mediaDevices.getUserMedia({audio:true,video:false});
-  }catch(e){
-    setRecLabel('MIC DENIED - RELOAD');
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    setStatus('MIC DENIED');
     return;
   }
-  const msrc = AC.createMediaStreamSource(mediaStream);
-  analyserNode = AC.createAnalyser(); analyserNode.fftSize=512;
+
+  var msrc = AC.createMediaStreamSource(mediaStream);
+  analyserNode = AC.createAnalyser(); analyserNode.fftSize = 512;
   msrc.connect(analyserNode);
 
-  recChunks=[]; isRecording=true; recStartTime=Date.now();
+  recChunks = []; isRecording = true; recStartT = Date.now();
 
-  // UI: recording state
-  document.getElementById('rec-btn').classList.add('rec');
-  document.getElementById('rec-center').classList.add('stop');
-  document.getElementById('rec-timer').style.opacity='1';
-  document.getElementById('use-btn').style.display='none';
-  document.getElementById('re-rec').style.display='none';
-  setRecLabel('TAP TO STOP');
-  updateTimer(); drawWaveLive();
+  document.getElementById('rec-btn').classList.add('recording');
+  document.getElementById('rec-timer').textContent = '00:00';
+  document.getElementById('launch-btn').style.display = 'none';
+  document.getElementById('rerec-btn').style.display = 'none';
+  setStatus('TAP TO STOP');
+  updateTimer();
+  drawWaveLive();
 
-  mediaRecorder = new MediaRecorder(mediaStream,{mimeType:getSupportedMime()});
-  mediaRecorder.ondataavailable = e=>{ if(e.data.size>0) recChunks.push(e.data); };
+  var mime = getSupportedMime();
+  try {
+    mediaRecorder = new MediaRecorder(mediaStream, mime ? {mimeType: mime} : {});
+  } catch(e) {
+    mediaRecorder = new MediaRecorder(mediaStream);
+  }
+  mediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size>0) recChunks.push(e.data); };
   mediaRecorder.onstop = processRecording;
   mediaRecorder.start(100);
 }
 
-function stopRecording(){
-  if(!isRecording) return;
-  isRecording=false;
-  cancelAnimationFrame(recTimerRAF);
-  cancelAnimationFrame(waveRAF);
-  if(mediaRecorder && mediaRecorder.state!=='inactive') mediaRecorder.stop();
-  if(mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
-  document.getElementById('rec-btn').classList.remove('rec');
-  document.getElementById('rec-center').classList.remove('stop');
-  document.getElementById('rec-timer').style.opacity='0';
-  setRecLabel('PROCESSING...');
+function stopRecording() {
+  if (!isRecording) return;
+  isRecording = false;
+  cancelAnimationFrame(recTimerRaf);
+  cancelAnimationFrame(waveRaf);
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  if (mediaStream) mediaStream.getTracks().forEach(function(t){ t.stop(); });
+  document.getElementById('rec-btn').classList.remove('recording');
+  document.getElementById('rec-timer').textContent = '';
+  setStatus('PROCESSING...');
 }
 
-async function processRecording(){
-  if(!recChunks.length){
-    setRecLabel('NO AUDIO - RETRY'); showReRec(); return;
-  }
-  const mime = recChunks[0].type || 'audio/webm';
-  const blob = new Blob(recChunks, {type:mime});
-  let arrayBuf;
-  try{ arrayBuf = await blob.arrayBuffer(); }
-  catch(e){ setRecLabel('READ ERROR - RETRY'); showReRec(); return; }
-
-  try{ fullBuffer = await AC.decodeAudioData(arrayBuf); }
-  catch(e){ setRecLabel('DECODE ERROR - RETRY'); showReRec(); return; }
-
-  if(!fullBuffer || fullBuffer.duration < 0.2){
-    setRecLabel('TOO SHORT - RETRY'); showReRec(); return;
-  }
-
-  // Success — show waveform and launch button
+async function processRecording() {
+  if (!recChunks.length) { setStatus('NO AUDIO - RETRY'); document.getElementById('rerec-btn').style.display='block'; return; }
+  var mime = (recChunks[0] && recChunks[0].type) ? recChunks[0].type : 'audio/webm';
+  var blob = new Blob(recChunks, { type: mime });
+  var arrayBuf;
+  try { arrayBuf = await blob.arrayBuffer(); } catch(e) { setStatus('READ ERROR'); document.getElementById('rerec-btn').style.display='block'; return; }
+  try { fullBuffer = await AC.decodeAudioData(arrayBuf); } catch(e) { setStatus('DECODE ERROR'); document.getElementById('rerec-btn').style.display='block'; return; }
+  if (!fullBuffer || fullBuffer.duration < 0.2) { setStatus('TOO SHORT'); document.getElementById('rerec-btn').style.display='block'; return; }
   drawWaveStatic(fullBuffer);
-  setRecLabel('READY  ' + fullBuffer.duration.toFixed(1) + 'S');
-  showUseBtn();
+  setStatus('READY  ' + fullBuffer.duration.toFixed(1) + 'S');
+  document.getElementById('launch-btn').style.display = 'block';
+  document.getElementById('rerec-btn').style.display = 'block';
 }
 
-function showUseBtn(){
-  document.getElementById('use-btn').style.display='block';
-  document.getElementById('re-rec').style.display='block';
-}
-
-function showReRec(){
-  document.getElementById('re-rec').style.display='block';
-}
-
-function launchApp(){
-  if(!fullBuffer){ setRecLabel('NO SAMPLE'); return; }
-  try{
-    initAC();
-    buildDrums();
-    startClock();
-  }catch(err){
-    console.error('Launch error:', err);
-    setRecLabel('ERROR: '+err.message);
-    return;
-  }
-  appStarted=true; lastT=performance.now();
-  const ov=document.getElementById('rec-overlay');
-  ov.style.transition='opacity .4s';
-  ov.style.opacity='0';
-  ov.style.pointerEvents='none';
-  setTimeout(()=>{ ov.style.display='none'; }, 450);
-  // Auto-spawn all balloons
-  setTimeout(()=>spawnBalloon(0), 200);
-  setTimeout(()=>spawnBalloon(1), 500);
-  setTimeout(()=>spawnBalloon(2), 800);
-}
-
-function resetToRecord(){
-  fullBuffer=null;
-  wfCtx2.fillStyle='#08060f'; wfCtx2.fillRect(0,0,wfCan.width,wfCan.height);
-  document.getElementById('use-btn').style.display='none';
-  document.getElementById('re-rec').style.display='none';
-  setRecLabel('TAP TO RECORD');
-}
-
-// ─── Button tap helper (works on iOS + Android + desktop) ───
-// Uses touchend for mobile responsiveness; click as fallback for desktop.
-// Deduplication prevents double-fire when both events occur.
-function onTap(el, fn){
-  let lastT=0;
-  function handle(e){
-    e.preventDefault(); e.stopPropagation();
-    const now=Date.now();
-    if(now-lastT<300) return; // dedupe
-    lastT=now;
-    fn(e);
-  }
-  el.addEventListener('touchend', handle, {passive:false});
-  el.addEventListener('click', handle);
-}
-
-onTap(document.getElementById('rec-btn'), ()=>{
-  if(isRecording) stopRecording(); else startRecording();
+// ══════════════════════════════════════════
+//  BUTTON WIRING — simple and direct
+// ══════════════════════════════════════════
+tap(document.getElementById('rec-btn'), function() {
+  if (isRecording) stopRecording(); else startRecording();
 });
 
-onTap(document.getElementById('use-btn'), ()=>{
+tap(document.getElementById('launch-btn'), function() {
   launchApp();
 });
 
-onTap(document.getElementById('re-rec'), ()=>{
-  resetToRecord();
+tap(document.getElementById('rerec-btn'), function() {
+  fullBuffer = null;
+  document.getElementById('launch-btn').style.display = 'none';
+  document.getElementById('rerec-btn').style.display = 'none';
+  wfCtx.fillStyle = '#08060f'; wfCtx.fillRect(0,0,wfCan.width,wfCan.height);
+  setStatus('TAP TO RECORD');
 });
 
-onTap(document.getElementById('new-rec-btn'), ()=>{
-  for(const b of balloons) b._stopAudio();
-  balloons=[]; appStarted=false; clockOn=false;
-  resetToRecord();
-  const ov=document.getElementById('rec-overlay');
-  ov.style.display='flex'; ov.style.opacity='0'; ov.style.pointerEvents='all';
-  requestAnimationFrame(()=>{ ov.style.transition='opacity .3s'; ov.style.opacity='1'; });
-  document.querySelectorAll('.sq').forEach(d=>d.classList.remove('on'));
-  ['cb1','cb2','cb3'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.width='0%'; });
+tap(document.getElementById('newrec'), function() {
+  for (var i=0; i<balloons.length; i++) balloons[i].stopAudio();
+  balloons = []; appStarted = false; clockOn = false; fullBuffer = null;
+  showScreen('s-rec');
+  document.getElementById('launch-btn').style.display = 'none';
+  document.getElementById('rerec-btn').style.display = 'none';
+  wfCtx.fillStyle = '#08060f'; wfCtx.fillRect(0,0,wfCan.width,wfCan.height);
+  setStatus('TAP TO RECORD');
+  document.getElementById('rec-timer').textContent = '';
+  document.querySelectorAll('.sq').forEach(function(d){ d.classList.remove('on'); });
 });
 
-onTap(document.getElementById('bpm-dn'), ()=>{
-  BPM=Math.max(60,BPM-5); updateBPMDisplay();
-  if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
-});
-onTap(document.getElementById('bpm-up'), ()=>{
-  BPM=Math.min(200,BPM+5); updateBPMDisplay();
-  if(appStarted && DRUMS){ buildBeatBuffers(); for(const b of balloons) if(b.state==='swelling') b._startAudio(); }
-});
+tap(document.getElementById('n1'), function() { spawnBalloon(0); });
+tap(document.getElementById('n2'), function() { spawnBalloon(1); });
+tap(document.getElementById('n3'), function() { spawnBalloon(2); });
 
-// Nozzles
-function spawnBalloon(nIdx){
-  if(!appStarted) return;
-  if(nIdx===0 && !fullBuffer) return;
-  const existing = balloons.find(b=>b.nIdx===nIdx);
-  if(existing){
-    if(existing.state==='swelling') existing.release();
-    return;
-  }
-  const b=new Balloon(nIdx);
-  balloons.push(b);
-  b.startSwell();
-}
-onTap(document.getElementById('b1'), ()=>spawnBalloon(0));
-onTap(document.getElementById('b2'), ()=>spawnBalloon(1));
-onTap(document.getElementById('b3'), ()=>spawnBalloon(2));
+tap(document.getElementById('bdn'), function() {
+  BPM = Math.max(60, BPM-5); updBPM();
+});
+tap(document.getElementById('bup'), function() {
+  BPM = Math.min(200, BPM+5); updBPM();
+});
 
 </script>
 </body>
